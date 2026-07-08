@@ -14,7 +14,7 @@ import {
 import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
-import { generateRoadmap } from "../../src/services/mockAI";
+import { useRoadmapStream } from "../../src/hooks/useRoadmapStream";
 import { LoadingOverlay } from "../../src/components/LoadingOverlay";
 import Svg, { Path, Line, Circle, Rect, Polyline } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -144,14 +144,16 @@ const ALL_TOPICS = [
 
 export default function HomeScreen() {
   const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const addRoadmap = useRoadmapStore((s) => s.addRoadmap);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const keyboardOffset = useRef(new Animated.Value(0)).current;
   const [isFocused, setIsFocused] = useState(false);
+
+  // ─── Streaming hook (replaces old generateRoadmap) ───
+  const { generateStructure, isStreaming, error: streamError } = useRoadmapStream();
+  const isLoading = isStreaming;
 
   const activeSuggestions = prompt.trim() && isFocused 
     ? ALL_TOPICS.filter(t => t.toLowerCase().includes(prompt.toLowerCase().trim()) && t.toLowerCase() !== prompt.toLowerCase().trim()).slice(0, 5)
@@ -195,18 +197,18 @@ export default function HomeScreen() {
     const trimmed = topicQuery.trim();
     if (!trimmed || isLoading) return;
 
-    setIsLoading(true);
-    setPrompt(trimmed); // Update input field to show what's being generated
+    setPrompt(trimmed);
     try {
-      const roadmap = await generateRoadmap(trimmed);
-      addRoadmap(roadmap);
-      setPrompt("");
-      router.push(`/roadmap/${roadmap.id}`);
+      const roadmap = await generateStructure(trimmed);
+      if (roadmap) {
+        setPrompt("");
+        router.push(`/roadmap/${roadmap.id}`);
+      } else if (streamError) {
+        Alert.alert("Generation Failed", streamError);
+      }
     } catch (error) {
       console.error("Failed to generate roadmap:", error);
       Alert.alert("Generation Failed", "An error occurred while generating your roadmap. Please check your network connection and try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 

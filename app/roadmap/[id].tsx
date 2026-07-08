@@ -1,8 +1,42 @@
-import React from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import React, { useMemo } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  useWindowDimensions,
+} from "react-native";
 import { useColorScheme } from "nativewind";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import Svg, { Circle, Path, Text as SvgText, G, Rect, Defs, LinearGradient, Stop } from "react-native-svg";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
+
+// ─── Layout Constants ───
+const VERTICAL_OFFSET = 120;
+const PADDING_TOP = 80;
+const PADDING_BOTTOM = 80;
+const NODE_RADIUS = 26;
+const LABEL_MAX_WIDTH = 120;
+
+/**
+ * Calculate the position of a node given its index.
+ * Produces a zigzag pattern: even indices left, odd indices right.
+ */
+function getNodePosition(index: number, screenWidth: number) {
+  const leftX = screenWidth * 0.28;
+  const rightX = screenWidth * 0.72;
+  const x = index % 2 === 0 ? leftX : rightX;
+  const y = PADDING_TOP + index * VERTICAL_OFFSET;
+  return { x, y };
+}
+
+/**
+ * Generate a cubic Bézier path string between two points.
+ */
+function getBezierPath(x1: number, y1: number, x2: number, y2: number): string {
+  const midY = (y1 + y2) / 2;
+  return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+}
 
 export default function RoadmapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -10,6 +44,7 @@ export default function RoadmapScreen() {
   const roadmap = useRoadmapStore((s) => s.getRoadmapById(id ?? ""));
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { width: screenWidth } = useWindowDimensions();
 
   if (!roadmap) {
     return (
@@ -23,16 +58,37 @@ export default function RoadmapScreen() {
   const totalCount = roadmap.nodes.length;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // Pre-calculate all node positions
+  const nodePositions = useMemo(
+    () => roadmap.nodes.map((_, i) => getNodePosition(i, screenWidth)),
+    [roadmap.nodes.length, screenWidth]
+  );
+
+  const canvasHeight = totalCount > 0
+    ? PADDING_TOP + (totalCount - 1) * VERTICAL_OFFSET + PADDING_BOTTOM
+    : 300;
+
+  // Colors
+  const fgColor = isDark ? "#f8fafc" : "#0f172a";
+  const bgColor = isDark ? "#000000" : "#ffffff";
+  const completedFill = isDark ? "#f8fafc" : "#0f172a";
+  const completedText = isDark ? "#0f172a" : "#ffffff";
+  const currentFill = isDark ? "#d97706" : "#f59e0b";
+  const lockedFill = isDark ? "#1e293b" : "#f1f5f9";
+  const lockedStroke = isDark ? "#475569" : "#cbd5e1";
+  const pathStroke = isDark ? "#334155" : "#d1d5db";
+  const completedPathStroke = isDark ? "#94a3b8" : "#64748b";
+
   return (
     <>
       <Stack.Screen options={{ title: roadmap.topic }} />
       <ScrollView
         className="flex-1 bg-neoBg dark:bg-neoBgDark"
-        contentContainerStyle={{ paddingVertical: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Progress summary */}
-        <View className="w-full px-6 mb-8">
+        <View className="w-full px-6 pt-6 mb-2">
           <View className="rounded-xl border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark p-4">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-xs font-space-bold uppercase tracking-wider text-neoFg dark:text-neoFgDark">
@@ -53,81 +109,157 @@ export default function RoadmapScreen() {
           </View>
         </View>
 
-        {/* Timeline Path */}
-        <View className="w-full px-4">
+        {/* SVG Canvas */}
+        <View style={{ width: screenWidth, height: canvasHeight }}>
+          <Svg width={screenWidth} height={canvasHeight}>
+            {/* Bézier connecting paths */}
+            {roadmap.nodes.map((node, i) => {
+              if (i === totalCount - 1) return null;
+              const from = nodePositions[i];
+              const to = nodePositions[i + 1];
+              const isCompletedPath = node.isCompleted;
+              return (
+                <Path
+                  key={`path-${i}`}
+                  d={getBezierPath(from.x, from.y, to.x, to.y)}
+                  stroke={isCompletedPath ? completedPathStroke : pathStroke}
+                  strokeWidth={3}
+                  strokeDasharray={isCompletedPath ? undefined : "8,6"}
+                  fill="none"
+                />
+              );
+            })}
+
+            {/* Node circles + labels */}
+            {roadmap.nodes.map((node, i) => {
+              const { x, y } = nodePositions[i];
+              const isCompleted = node.isCompleted;
+              const isCurrent = !isCompleted && roadmap.nodes.findIndex((n) => !n.isCompleted) === i;
+              const isLocked = !isCompleted && !isCurrent;
+
+              const fill = isCompleted
+                ? completedFill
+                : isCurrent
+                ? currentFill
+                : lockedFill;
+
+              const stroke = isLocked ? lockedStroke : fgColor;
+              const textFill = isCompleted
+                ? completedText
+                : isCurrent
+                ? fgColor
+                : isDark ? "#94a3b8" : "#64748b";
+
+              // Label positioning: alternate left/right of the node
+              const labelX = i % 2 === 0 ? x + NODE_RADIUS + 14 : x - NODE_RADIUS - 14;
+              const labelAnchor = i % 2 === 0 ? "start" : "end";
+
+              return (
+                <G key={node.id}>
+                  {/* Outer ring for current node */}
+                  {isCurrent && (
+                    <Circle
+                      cx={x}
+                      cy={y}
+                      r={NODE_RADIUS + 6}
+                      fill="none"
+                      stroke={currentFill}
+                      strokeWidth={2}
+                      strokeDasharray="4,4"
+                      opacity={0.6}
+                    />
+                  )}
+
+                  {/* Node circle */}
+                  <Circle
+                    cx={x}
+                    cy={y}
+                    r={NODE_RADIUS}
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={3}
+                  />
+
+                  {/* Node number / checkmark */}
+                  <SvgText
+                    x={x}
+                    y={y + 1}
+                    textAnchor="middle"
+                    alignmentBaseline="central"
+                    fill={isCompleted ? completedText : textFill}
+                    fontSize={isCompleted ? 16 : 13}
+                    fontFamily="SpaceGrotesk_700Bold"
+                    fontWeight="bold"
+                  >
+                    {isCompleted ? "✓" : String(i + 1).padStart(2, "0")}
+                  </SvgText>
+
+                  {/* Label */}
+                  <SvgText
+                    x={labelX}
+                    y={y - 6}
+                    textAnchor={labelAnchor}
+                    fill={isLocked ? (isDark ? "#64748b" : "#94a3b8") : fgColor}
+                    fontSize={12}
+                    fontFamily="SpaceGrotesk_700Bold"
+                    fontWeight="bold"
+                  >
+                    {node.label.length > 18 ? node.label.substring(0, 16) + "…" : node.label}
+                  </SvgText>
+
+                  {/* Status subtitle */}
+                  <SvgText
+                    x={labelX}
+                    y={y + 10}
+                    textAnchor={labelAnchor}
+                    fill={isDark ? "#64748b" : "#94a3b8"}
+                    fontSize={9}
+                    fontFamily="SpaceGrotesk_400Regular"
+                  >
+                    {isCompleted ? "COMPLETE" : isCurrent ? "● ACTIVE" : "LOCKED"}
+                  </SvgText>
+                </G>
+              );
+            })}
+          </Svg>
+
+          {/* Invisible Pressable overlay for tap targets */}
           {roadmap.nodes.map((node, i) => {
+            const { x, y } = nodePositions[i];
             const isCompleted = node.isCompleted;
             const isCurrent = !isCompleted && roadmap.nodes.findIndex((n) => !n.isCompleted) === i;
-
-            // Minimalist neobrutalist colors (stark white/beige/black instead of rainbow)
-            const badgeBg = isCompleted
-              ? "bg-neoFg dark:bg-neoFgDark"
-              : isCurrent
-              ? "bg-neoMain dark:bg-neoMainDark"
-              : "bg-neoBg dark:bg-neoBgDark";
-
-            const badgeText = isCompleted
-              ? "text-neoBg dark:text-neoBgDark"
-              : "text-neoFg dark:text-neoFgDark";
-
-            const cardBg = isCurrent || isCompleted
-              ? "bg-neoMain dark:bg-neoMainDark"
-              : "bg-neoBg dark:bg-neoBgDark opacity-80";
+            const isLocked = !isCompleted && !isCurrent;
 
             return (
-              <View key={node.id} className="flex-row w-full">
-                {/* Timeline Left Column */}
-                <View className="w-16 items-center">
-                  {/* Top line segment */}
-                  <View className={`w-1.5 flex-1 bg-neoFg dark:bg-neoFgDark ${i === 0 ? 'opacity-0' : ''}`} />
-                  
-                  {/* Badge */}
-                  <View className={`w-10 h-10 rounded-xl border-3 border-neoFg dark:border-neoFgDark items-center justify-center z-10 ${badgeBg}`}>
-                    {isCompleted ? (
-                      <Text className={`font-space-bold ${badgeText}`}>✓</Text>
-                    ) : (
-                      <Text className={`font-space-bold ${badgeText}`}>
-                        {String(i + 1).padStart(2, '0')}
-                      </Text>
-                    )}
-                  </View>
-
-                  {/* Bottom line segment */}
-                  <View className={`w-1.5 flex-1 bg-neoFg dark:bg-neoFgDark ${i === totalCount - 1 ? 'opacity-0' : ''}`} />
-                </View>
-
-                {/* Right Card Column */}
-                <View className="flex-1 pr-2 py-3">
-                  {/* 3D solid shadow container */}
-                  <View className="w-full bg-neoFg dark:bg-neoFgDark rounded-2xl">
-                    <Pressable
-                      onPress={() => router.push(`/material/${roadmap.id}/${node.id}`)}
-                      disabled={!isCompleted && !isCurrent}
-                      className={`rounded-2xl border-3 border-neoFg dark:border-neoFgDark p-5 -translate-x-1.5 -translate-y-1.5 ${
-                        !isCompleted && !isCurrent ? "" : "active:translate-x-0 active:translate-y-0"
-                      } ${cardBg}`}
-                    >
-                      <Text className="text-base font-space-bold uppercase text-neoFg dark:text-neoFgDark tracking-tight leading-tight mb-3">
-                        {node.label}
-                      </Text>
-                      
-                      <View className="flex-row items-center justify-between border-t-2 border-dashed border-neoFg/20 pt-3">
-                        <Text className="text-[10px] font-mono text-neoFg/70 dark:text-neoFgDark/70">
-                          {isCompleted ? "✓ COMPLETE" : isCurrent ? "● ACTIVE" : "✕ LOCKED"}
-                        </Text>
-                        <Text className={`text-[11px] font-space-bold uppercase tracking-wider ${
-                          !isCompleted && !isCurrent ? "text-neoFg/40 dark:text-neoFgDark/40" : "text-neoFg dark:text-neoFgDark"
-                        }`}>
-                          {!isCompleted && !isCurrent ? "Locked" : "Start →"}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  </View>
-                </View>
-              </View>
+              <Pressable
+                key={`tap-${node.id}`}
+                onPress={() => {
+                  if (!isLocked) {
+                    router.push(`/material/${roadmap.id}/${node.id}`);
+                  }
+                }}
+                disabled={isLocked}
+                style={{
+                  position: "absolute",
+                  left: x - NODE_RADIUS - 10,
+                  top: y - NODE_RADIUS - 10,
+                  width: (NODE_RADIUS + 10) * 2,
+                  height: (NODE_RADIUS + 10) * 2,
+                  borderRadius: NODE_RADIUS + 10,
+                }}
+              />
             );
           })}
         </View>
+
+        {/* Estimated time footer */}
+        {roadmap.estimatedHours > 0 && (
+          <View className="px-6 mt-2 mb-4">
+            <Text className="text-center text-[10px] font-mono text-neoFg/40 dark:text-neoFgDark/40 uppercase">
+              Estimated: {roadmap.estimatedHours}h total · {roadmap.totalModules} modules
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </>
   );

@@ -1,10 +1,31 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { mmkvStorage, mmkvInstance } from "./mmkv";
-import { RoadmapStore } from "./types";
+import { RoadmapStore, ContentStatus, ModuleContent } from "./types";
 import { colorScheme } from "nativewind";
 
-// Read and apply initial theme synchronously to prevent theme flash
+// ─── Legacy type guard for migration ───
+interface LegacyNode {
+  id: string;
+  label: string;
+  isCompleted: boolean;
+  material?: {
+    markdownBody: string;
+    sources: { title: string; url: string }[];
+  };
+  // New-schema fields (may or may not exist)
+  index?: number;
+  description?: string;
+  prerequisites?: string[];
+  contentStatus?: ContentStatus;
+  content?: ModuleContent;
+}
+
+function isLegacyNode(node: any): node is LegacyNode {
+  return node && 'material' in node && !('contentStatus' in node);
+}
+
+// ─── Read and apply initial theme synchronously to prevent flash ───
 const getInitialTheme = (): "light" | "dark" => {
   try {
     const raw = mmkvInstance.getString("roadmap-storage");
@@ -82,9 +103,43 @@ export const useRoadmapStore = create<RoadmapStore>()(
         if (currentIndex <= 0) return null;
         return roadmap.nodes[currentIndex - 1].id;
       },
+
       setRoadmaps: (roadmaps) => {
         set({ roadmaps });
       },
+
+      // ─── Phase 2 Actions ───
+
+      setModuleStatus: (roadmapId, moduleId, status) => {
+        set((state) => ({
+          roadmaps: state.roadmaps.map((r) => {
+            if (r.id !== roadmapId) return r;
+            return {
+              ...r,
+              nodes: r.nodes.map((n) =>
+                n.id === moduleId ? { ...n, contentStatus: status } : n
+              ),
+            };
+          }),
+        }));
+      },
+
+      injectModuleContent: (roadmapId, moduleId, content) => {
+        set((state) => ({
+          roadmaps: state.roadmaps.map((r) => {
+            if (r.id !== roadmapId) return r;
+            return {
+              ...r,
+              nodes: r.nodes.map((n) =>
+                n.id === moduleId
+                  ? { ...n, contentStatus: 'complete' as const, content }
+                  : n
+              ),
+            };
+          }),
+        }));
+      },
+
       setTheme: (theme) => {
         set({ theme });
       },
@@ -92,6 +147,53 @@ export const useRoadmapStore = create<RoadmapStore>()(
     {
       name: "roadmap-storage",
       storage: createJSONStorage(() => mmkvStorage),
+      // ─── Migration: transform legacy roadmaps on rehydration ───
+      migrate: (persistedState: any, version: number) => {
+        const state = persistedState as any;
+        if (state && Array.isArray(state.roadmaps)) {
+          state.roadmaps = state.roadmaps.map((roadmap: any) => {
+            if (!roadmap || !Array.isArray(roadmap.nodes)) return roadmap;
+
+            const hasLegacyNodes = roadmap.nodes.some(isLegacyNode);
+            if (!hasLegacyNodes) return roadmap;
+
+            // Migrate legacy nodes to new schema
+            return {
+              ...roadmap,
+              totalModules: roadmap.totalModules ?? roadmap.nodes.length,
+              estimatedHours: roadmap.estimatedHours ?? 0,
+              nodes: roadmap.nodes.map((node: LegacyNode, idx: number) => {
+                const migrated: any = {
+                  id: node.id,
+                  index: node.index ?? idx,
+                  label: node.label,
+                  description: node.description ?? '',
+                  prerequisites: node.prerequisites ?? [],
+                  isCompleted: node.isCompleted ?? false,
+                  contentStatus: node.material?.markdownBody ? 'complete' : 'idle',
+                };
+
+                // Preserve existing material as ModuleContent
+                if (node.material?.markdownBody) {
+                  migrated.content = {
+                    moduleId: node.id,
+                    markdownBody: node.material.markdownBody,
+                    mermaidDiagrams: [],
+                    imageQueries: [],
+                    keyTakeaways: [],
+                    sources: node.material.sources ?? [],
+                    estimatedMinutes: 0,
+                  };
+                }
+
+                return migrated;
+              }),
+            };
+          });
+        }
+        return state;
+      },
+      version: 1,
     }
   )
 );

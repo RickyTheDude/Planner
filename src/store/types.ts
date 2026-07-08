@@ -1,22 +1,51 @@
-export type Material = {
+// ─── Phase 2: Module Content (from POST /api/roadmap/module) ───
+export type MermaidDiagram = {
+  title: string;
+  code: string;
+};
+
+export type ImageQuery = {
+  alt: string;
+  query: string;
+  placement: 'hero' | 'inline' | 'sidebar';
+};
+
+export type ModuleContent = {
+  moduleId: string;
   markdownBody: string;
+  mermaidDiagrams: MermaidDiagram[];
+  imageQueries: ImageQuery[];
+  keyTakeaways: string[];
   sources: { title: string; url: string }[];
+  estimatedMinutes: number;
+  createdAt?: number;
 };
 
-export type Node = {
+// ─── Phase 1: Roadmap Node (from POST /api/roadmap) ───
+export type ContentStatus = 'idle' | 'loading' | 'complete';
+
+export type RoadmapNode = {
   id: string;
+  index: number;
   label: string;
+  description: string;
+  prerequisites: string[];
   isCompleted: boolean;
-  material: Material;
+  contentStatus: ContentStatus;
+  content?: ModuleContent;
 };
 
+// ─── Roadmap Structure ───
 export type Roadmap = {
   id: string;
   topic: string;
+  totalModules: number;
+  estimatedHours: number;
   createdAt: number;
-  nodes: Node[];
+  nodes: RoadmapNode[];
 };
 
+// ─── Store Interface ───
 export interface RoadmapStore {
   roadmaps: Roadmap[];
   addRoadmap: (roadmap: Roadmap) => void;
@@ -26,6 +55,8 @@ export interface RoadmapStore {
   getNextNodeId: (roadmapId: string, currentNodeId: string) => string | null;
   getPrevNodeId: (roadmapId: string, currentNodeId: string) => string | null;
   setRoadmaps: (roadmaps: Roadmap[]) => void;
-  theme: "light" | "dark";
-  setTheme: (theme: "light" | "dark") => void;
+  setModuleStatus: (roadmapId: string, moduleId: string, status: ContentStatus) => void;
+  injectModuleContent: (roadmapId: string, moduleId: string, content: ModuleContent) => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 }
