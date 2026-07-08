@@ -26,4 +26,6 @@ export interface RoadmapStore {
   getNextNodeId: (roadmapId: string, currentNodeId: string) => string | null;
   getPrevNodeId: (roadmapId: string, currentNodeId: string) => string | null;
   setRoadmaps: (roadmaps: Roadmap[]) => void;
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
 }

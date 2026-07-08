@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, ScrollView, Pressable, useColorScheme } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
+import { useColorScheme } from "nativewind";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
 
@@ -7,7 +8,7 @@ export default function RoadmapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const roadmap = useRoadmapStore((s) => s.getRoadmapById(id ?? ""));
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
   if (!roadmap) {

@@ -1,9 +1,11 @@
+// @ts-ignore
 import "../global.css";
 import React from "react";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
+import { useColorScheme } from "nativewind";
+import { useRoadmapStore } from "../src/store/useRoadmapStore";
 import {
   useFonts,
   SpaceGrotesk_300Light,
@@ -14,8 +16,13 @@ import {
 } from "@expo-google-fonts/space-grotesk";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const theme = useRoadmapStore((s) => s.theme ?? "light");
   const isDark = colorScheme === "dark";
+
+  React.useEffect(() => {
+    setColorScheme(theme);
+  }, [theme]);
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_300Light,
@@ -29,7 +36,7 @@ export default function RootLayout() {
     return null;
   }
 
-  const bgColor = isDark ? "#1a1a1a" : "#ffffff";
+  const bgColor = isDark ? "#000000" : "#ffffff";
   const fgColor = isDark ? "#e8e8e8" : "#111111";
 
   const headerOptions = {

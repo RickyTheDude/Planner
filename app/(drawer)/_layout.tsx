@@ -1,16 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, ScrollView, useColorScheme, useWindowDimensions } from "react-native";
+import { View, Text, Pressable, ScrollView, useWindowDimensions, Platform } from "react-native";
+import { useColorScheme } from "nativewind";
 import { Drawer } from "expo-router/drawer";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useRouter, useNavigation } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
-import Svg, { Line, Path } from "react-native-svg";
+import Svg, { Line, Path, Circle } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  SharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,7 +33,7 @@ const TrashIcon = ({ color }: { color: string }) => (
 
 const CustomHeaderLeft = () => {
   const navigation = useNavigation() as any;
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const fgColor = isDark ? "#f8fafc" : "#0f172a";
 
@@ -47,8 +49,59 @@ const CustomHeaderLeft = () => {
   );
 };
 
+const SunIcon = ({ color }: { color: string }) => (
+  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <Circle cx="12" cy="12" r="5" />
+    <Line x1="12" y1="1" x2="12" y2="3" />
+    <Line x1="12" y1="21" x2="12" y2="23" />
+    <Line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <Line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <Line x1="1" y1="12" x2="3" y2="12" />
+    <Line x1="21" y1="12" x2="23" y2="12" />
+    <Line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <Line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </Svg>
+);
+
+const MoonIcon = ({ color }: { color: string }) => (
+  <Svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </Svg>
+);
+
+const CustomHeaderRight = () => {
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const theme = useRoadmapStore((s) => s.theme ?? "light");
+  const setTheme = useRoadmapStore((s) => s.setTheme);
+  const fgColor = isDark ? "#f8fafc" : "#0f172a";
+
+  const toggleTheme = () => {
+    const nextTheme = isDark ? "light" : "dark";
+    setTheme(nextTheme);
+    setColorScheme(nextTheme);
+  };
+
+  return (
+    <View className="mr-4 rounded-lg bg-neoFg dark:bg-neoFgDark">
+      <Pressable
+        onPress={toggleTheme}
+        className="h-10 w-10 items-center justify-center rounded-lg border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark -translate-x-1 -translate-y-1 active:translate-x-0 active:translate-y-0"
+      >
+        {isDark ? (
+          <SunIcon color={fgColor} />
+        ) : (
+          <MoonIcon color={fgColor} />
+        )}
+      </Pressable>
+    </View>
+  );
+};
+
 function getRelativeTime(timestamp: number): string {
+  if (!timestamp) return "Just now";
   const diff = Date.now() - timestamp;
+  if (isNaN(diff)) return "Just now";
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
@@ -59,8 +112,8 @@ function getRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString();
 }
 
-function getCompletionPercent(nodes: { isCompleted: boolean }[]): number {
-  if (nodes.length === 0) return 0;
+function getCompletionPercent(nodes?: { isCompleted: boolean }[]): number {
+  if (!nodes || nodes.length === 0) return 0;
   const completed = nodes.filter((n) => n.isCompleted).length;
   return Math.round((completed / nodes.length) * 100);
 }
@@ -68,7 +121,7 @@ function getCompletionPercent(nodes: { isCompleted: boolean }[]): number {
 interface DraggableRoadmapCardProps {
   roadmap: any;
   index: number;
-  draggedAbsoluteY: Animated.SharedValue<number>;
+  draggedAbsoluteY: SharedValue<number>;
   onDragStart: (id: string) => void;
   onDragEnd: (id: string, translateX: number, translateY: number, absoluteY: number) => void;
   onPress: () => void;
@@ -84,9 +137,9 @@ function DraggableRoadmapCard({
   onPress,
   onLongPress,
 }: DraggableRoadmapCardProps) {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const pct = getCompletionPercent(roadmap.nodes);
+  const pct = getCompletionPercent(roadmap?.nodes);
 
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -151,7 +204,7 @@ function DraggableRoadmapCard({
               className="text-sm font-space-bold uppercase text-neoFg dark:text-neoFgDark"
               numberOfLines={1}
             >
-              {roadmap.topic}
+              {roadmap?.topic || "Untitled Topic"}
             </Text>
             <View className="mt-2.5 flex-row items-center justify-between">
               <Text className="text-[10px] font-mono text-neoFg/60 dark:text-neoFgDark/60">
@@ -160,7 +213,7 @@ function DraggableRoadmapCard({
               <View className="flex-row items-center">
                 <View className="mr-2.5 h-2.5 w-14 overflow-hidden rounded-full border-2 border-neoFg dark:border-neoFgDark bg-neoBg dark:bg-neoBgDark">
                   <View
-                    className="h-full bg-neoBg dark:bg-neoBgDark"
+                    className="h-full bg-neoFg dark:bg-neoFgDark"
                     style={{ width: `${pct}%` }}
                   />
                 </View>
@@ -174,12 +227,12 @@ function DraggableRoadmapCard({
   );
 }
 
-function CustomDrawerContent(props: DrawerContentComponentProps) {
+function CustomDrawerContent(props: any) {
   const router = useRouter();
   const roadmaps = useRoadmapStore((s) => s.roadmaps);
   const deleteRoadmap = useRoadmapStore((s) => s.deleteRoadmap);
   const setRoadmaps = useRoadmapStore((s) => s.setRoadmaps);
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -221,7 +274,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   const animatedFooterStyle = useAnimatedStyle(() => {
     const isNearDelete = draggedAbsoluteY.value > deleteThreshold;
     return {
-      backgroundColor: withSpring(isNearDelete ? "#ef4444" : isDark ? "#0f172a" : "#f8fafc"),
+      backgroundColor: withSpring(isNearDelete ? "#ef4444" : isDark ? "#000000" : "#ffffff"),
       paddingBottom: withSpring(Math.max(bottomInset, 16) + 12),
     };
   });
@@ -254,17 +307,17 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     };
   });
 
+  const drawerHeaderHeight = insets.top + 64;
+
   return (
     <View style={{ flex: 1, overflow: "visible" }} className="bg-neoBg dark:bg-neoBgDark">
-      <View className="border-b-3 border-neoFg dark:border-neoFgDark bg-neoBg dark:bg-neoBgDark px-5 pb-6 pt-14">
+      <View 
+        style={{ height: drawerHeaderHeight, paddingTop: insets.top }}
+        className="border-b-3 border-neoFg dark:border-neoFgDark bg-neoBg dark:bg-neoBgDark px-5 justify-center"
+      >
         <Text className="text-2xl font-space-bold uppercase tracking-tight text-neoFg dark:text-neoFgDark">
-          Cognimosity
+          Learning Paths
         </Text>
-        <View className="mt-2 self-start rounded border-2 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark px-2 py-0.5">
-          <Text className="text-[10px] font-space-bold uppercase tracking-wider text-neoFg dark:text-neoFgDark">
-            LEARNING PATHS
-          </Text>
-        </View>
       </View>
 
       <View className="mx-4 mt-5 rounded-xl bg-neoFg dark:bg-neoFgDark">
@@ -299,6 +352,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         )}
 
         {roadmaps.map((roadmap, index) => {
+          if (!roadmap || !roadmap.id) return null;
           return (
             <DraggableRoadmapCard
               key={roadmap.id}
@@ -352,18 +406,22 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 }
 
 export default function DrawerLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const bgColor = isDark ? "#1a1a1a" : "#ffffff";
+  const bgColor = isDark ? "#000000" : "#ffffff";
   const fgColor = isDark ? "#e8e8e8" : "#111111";
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const headerHeight = insets.top + 64;
 
   return (
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
-        headerLeft: () => null,
+        headerLeft: () => <CustomHeaderLeft />,
         headerStyle: {
           backgroundColor: bgColor,
+          height: headerHeight,
           borderBottomWidth: 3,
           borderBottomColor: fgColor,
           shadowColor: "transparent",
@@ -385,13 +443,16 @@ export default function DrawerLayout() {
           overflow: "visible",
         },
         sceneStyle: { backgroundColor: bgColor },
+        swipeEdgeWidth: width,
       }}
     >
       <Drawer.Screen
         name="index"
         options={{
-          title: "Roadmaps",
+          title: "Cognimosity",
           drawerLabel: "Home",
+          headerTitleAlign: "center",
+          headerRight: () => <CustomHeaderRight />,
         }}
       />
     </Drawer>

@@ -1,17 +1,41 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { mmkvStorage } from "./mmkv";
+import { mmkvStorage, mmkvInstance } from "./mmkv";
 import { RoadmapStore } from "./types";
+import { colorScheme } from "nativewind";
+
+// Read and apply initial theme synchronously to prevent theme flash
+const getInitialTheme = (): "light" | "dark" => {
+  try {
+    const raw = mmkvInstance.getString("roadmap-storage");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.state?.theme === "dark") {
+        return "dark";
+      }
+    }
+  } catch (err) {
+    console.error("Failed to read theme from MMKV", err);
+  }
+  return "light";
+};
+
+const initialTheme = getInitialTheme();
+colorScheme.set(initialTheme);
 
 export const useRoadmapStore = create<RoadmapStore>()(
   persist(
     (set, get) => ({
       roadmaps: [],
+      theme: initialTheme,
 
       addRoadmap: (roadmap) => {
-        set((state) => ({
-          roadmaps: [roadmap, ...state.roadmaps],
-        }));
+        set((state) => {
+          const filtered = state.roadmaps.filter((r) => r.id !== roadmap.id);
+          return {
+            roadmaps: [roadmap, ...filtered],
+          };
+        });
       },
 
       deleteRoadmap: (roadmapId) => {
@@ -60,6 +84,9 @@ export const useRoadmapStore = create<RoadmapStore>()(
       },
       setRoadmaps: (roadmaps) => {
         set({ roadmaps });
+      },
+      setTheme: (theme) => {
+        set({ theme });
       },
     }),
     {
