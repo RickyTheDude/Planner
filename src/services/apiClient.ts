@@ -5,6 +5,7 @@ export const API_BASE_URL = 'https://cognimosity-backend.vercel.app';
 export const ENDPOINTS = {
   ROADMAP: `${API_BASE_URL}/api/roadmap`,
   MODULE: `${API_BASE_URL}/api/roadmap/module`,
+  IMAGE: `${API_BASE_URL}/api/image`,
 } as const;
 
 // ─── Content-type detection ───

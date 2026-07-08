@@ -49,6 +49,7 @@ export const useRoadmapStore = create<RoadmapStore>()(
     (set, get) => ({
       roadmaps: [],
       theme: initialTheme,
+      fontSizeMultiplier: 1.0,
 
       addRoadmap: (roadmap) => {
         set((state) => {
@@ -140,8 +141,28 @@ export const useRoadmapStore = create<RoadmapStore>()(
         }));
       },
 
+      updateNodeScrollProgress: (roadmapId, nodeId, progress) => {
+        set((state) => ({
+          roadmaps: state.roadmaps.map((r) => {
+            if (r.id !== roadmapId) return r;
+            return {
+              ...r,
+              nodes: r.nodes.map((n) =>
+                n.id === nodeId
+                  ? { ...n, maxScrollProgress: Math.max(n.maxScrollProgress || 0, progress) }
+                  : n
+              ),
+            };
+          }),
+        }));
+      },
+
       setTheme: (theme) => {
         set({ theme });
+      },
+
+      setFontSizeMultiplier: (multiplier) => {
+        set({ fontSizeMultiplier: multiplier });
       },
     }),
     {

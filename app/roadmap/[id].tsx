@@ -154,19 +154,42 @@ export default function RoadmapScreen() {
               const labelX = i % 2 === 0 ? x + NODE_RADIUS + 14 : x - NODE_RADIUS - 14;
               const labelAnchor = i % 2 === 0 ? "start" : "end";
 
+              const PROGRESS_RADIUS = NODE_RADIUS + 6;
+              const progress = Math.max(0, Math.min(1, node.maxScrollProgress || 0));
+              const circumference = 2 * Math.PI * PROGRESS_RADIUS;
+              const strokeDashoffset = circumference - (progress * circumference);
+              const progressStroke = isDark ? "#10b981" : "#059669"; // Green (neoPink)
+
               return (
                 <G key={node.id}>
-                  {/* Outer ring for current node */}
-                  {isCurrent && (
+                  {/* Outer background ring for current node or nodes with progress */}
+                  {(isCurrent || progress > 0) && !isCompleted && (
                     <Circle
                       cx={x}
                       cy={y}
-                      r={NODE_RADIUS + 6}
+                      r={PROGRESS_RADIUS}
                       fill="none"
-                      stroke={currentFill}
+                      stroke={isCurrent ? currentFill : (isDark ? "#334155" : "#e2e8f0")}
                       strokeWidth={2}
-                      strokeDasharray="4,4"
-                      opacity={0.6}
+                      strokeDasharray={progress === 0 ? "4,4" : undefined}
+                      opacity={0.4}
+                    />
+                  )}
+
+                  {/* Progress ring foreground */}
+                  {!isCompleted && progress > 0 && (
+                    <Circle
+                      cx={x}
+                      cy={y}
+                      r={PROGRESS_RADIUS}
+                      fill="none"
+                      stroke={progressStroke}
+                      strokeWidth={3}
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="round"
+                      origin={`${x}, ${y}`}
+                      rotation="-90"
                     />
                   )}
 
@@ -216,7 +239,7 @@ export default function RoadmapScreen() {
                     fontSize={9}
                     fontFamily="SpaceGrotesk_400Regular"
                   >
-                    {isCompleted ? "COMPLETE" : isCurrent ? "● ACTIVE" : "LOCKED"}
+                    {isCompleted ? "COMPLETE" : progress > 0 ? `${Math.round(progress * 100)}% READ` : isCurrent ? "● ACTIVE" : "LOCKED"}
                   </SvgText>
                 </G>
               );

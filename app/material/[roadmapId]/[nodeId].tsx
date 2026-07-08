@@ -8,20 +8,35 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   useWindowDimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { useColorScheme } from "nativewind";
 import type { RenderRules } from "@ronradtke/react-native-markdown-display";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import Markdown from "@ronradtke/react-native-markdown-display";
 import ConfettiCannon from "react-native-confetti-cannon";
+import * as Haptics from 'expo-haptics';
 
 import { useRoadmapStore } from "../../../src/store/useRoadmapStore";
 import { useRoadmapStream } from "../../../src/hooks/useRoadmapStream";
 import { SourcesModal } from "../../../src/components/SourcesModal";
 import { MermaidBlock } from "../../../src/components/MermaidBlock";
 import { ModuleLoadingSkeleton } from "../../../src/components/ModuleLoadingSkeleton";
+import { StandingWaveLoader } from "../../../src/components/StandingWaveLoader";
 import { resolveImageUrl } from "../../../src/services/imageService";
+import { FluxImage } from "../../../src/components/FluxImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const triggerCompletionHaptics = () => {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  setTimeout(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setTimeout(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 90); // 90ms delay for distinct but rapid feel
+  }, 90);
+};
 
 export default function MaterialScreen() {
   const { roadmapId, nodeId } = useLocalSearchParams<{
@@ -40,6 +55,9 @@ export default function MaterialScreen() {
   const markNodeCompleted = useRoadmapStore((s) => s.markNodeCompleted);
   const getNextNodeId = useRoadmapStore((s) => s.getNextNodeId);
   const getPrevNodeId = useRoadmapStore((s) => s.getPrevNodeId);
+  const updateNodeScrollProgress = useRoadmapStore((s) => s.updateNodeScrollProgress);
+  const fontSizeMultiplier = useRoadmapStore((s) => s.fontSizeMultiplier);
+  const setFontSizeMultiplier = useRoadmapStore((s) => s.setFontSizeMultiplier);
 
   const { generateModuleContent, error: streamError } = useRoadmapStream();
 
@@ -57,6 +75,146 @@ export default function MaterialScreen() {
   const nextId = getNextNodeId(roadmapId ?? "", nodeId ?? "");
   const prevId = getPrevNodeId(roadmapId ?? "", nodeId ?? "");
 
+  // ─── Fast Scrollbar State ───
+  const scrollbarOpacity = useRef(new Animated.Value(0)).current;
+  const scrollbarY = useRef(new Animated.Value(0)).current;
+  const hideTimeout = useRef<any | null>(null);
+  const isDragging = useRef(false);
+  const bubbleHeight = 40;
+  
+  // ─── Reading Progress Tracking ───
+  const maxScrollRef = useRef(node?.maxScrollProgress || 0);
+  const isFrontierRef = useRef(false);
+  const [isFrontier, setIsFrontier] = useState(false);
+  const [showFontControls, setShowFontControls] = useState(false);
+
+  // ─── Snapping State ───
+  const headingsRef = useRef<{ id: string; y: number }[]>([]);
+  const markdownYRef = useRef(0);
+  const lastSnappedIdRef = useRef<string | null>(null);
+  const lastActiveHeadingRef = useRef<string | null>(null);
+
+  const showScrollbar = useCallback(() => {
+    if (hideTimeout.current) clearTimeout(hideTimeout.current);
+    Animated.timing(scrollbarOpacity, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+    
+    if (!isDragging.current) {
+      hideTimeout.current = setTimeout(() => {
+        Animated.timing(scrollbarOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+
+        setShowFontControls(false); // Hide controls when scrollbar hides
+
+        if (roadmapId && nodeId) {
+          updateNodeScrollProgress(roadmapId, nodeId, maxScrollRef.current);
+        }
+      }, 1500);
+    }
+  }, [scrollbarOpacity, roadmapId, nodeId, updateNodeScrollProgress]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          isDragging.current = true;
+          showScrollbar();
+          scrollbarY.extractOffset();
+        },
+        onPanResponderMove: Animated.event(
+          [null, { dy: scrollbarY }],
+          { useNativeDriver: false }
+        ),
+        onPanResponderRelease: (e, gestureState) => {
+          scrollbarY.flattenOffset();
+          isDragging.current = false;
+          showScrollbar();
+          
+          if (Math.abs(gestureState.dx) < 10 && Math.abs(gestureState.dy) < 10) {
+            setShowFontControls((prev) => !prev);
+          } else {
+            setShowFontControls(false);
+          }
+        },
+      }),
+    [showScrollbar, scrollbarY]
+  );
+
+  useEffect(() => {
+    const id = scrollbarY.addListener(({ value }) => {
+      if (layoutHeight && contentHeight) {
+        const trackHeight = layoutHeight - bubbleHeight;
+        const maxScroll = contentHeight - layoutHeight;
+        if (trackHeight > 0 && maxScroll > 0) {
+          const clampedValue = Math.max(0, Math.min(trackHeight, value));
+          const percentage = clampedValue / trackHeight;
+          
+          if (isDragging.current) {
+            let targetY = percentage * maxScroll;
+            
+            // Snapping Logic
+            const SNAP_THRESHOLD = 150; // increased for stronger magnetism while skimming
+            let snapped = false;
+            let snappedId = null;
+
+            for (const heading of headingsRef.current) {
+              const headingScrollY = markdownYRef.current + heading.y - 20; // 20px padding
+              if (Math.abs(targetY - headingScrollY) < SNAP_THRESHOLD) {
+                targetY = headingScrollY;
+                snapped = true;
+                snappedId = heading.id;
+                break;
+              }
+            }
+
+            if (snapped && lastSnappedIdRef.current !== snappedId) {
+              Haptics.selectionAsync(); // Subtle haptic bump
+              lastSnappedIdRef.current = snappedId;
+            } else if (!snapped && lastSnappedIdRef.current !== null) {
+              lastSnappedIdRef.current = null;
+            }
+
+            scrollViewRef.current?.scrollTo({
+              y: targetY,
+              animated: false,
+            });
+
+            // Update frontier status while dragging
+            const threshold = maxScrollRef.current - 0.01;
+            const currentIsFrontier = percentage >= threshold;
+            if (currentIsFrontier !== isFrontierRef.current) {
+              isFrontierRef.current = currentIsFrontier;
+              setIsFrontier(currentIsFrontier);
+            }
+            if (percentage > maxScrollRef.current) {
+              maxScrollRef.current = percentage;
+            }
+          }
+        }
+      }
+    });
+    return () => {
+      scrollbarY.removeListener(id);
+    };
+  }, [layoutHeight, contentHeight, scrollbarY]);
+
+  // Sync on unmount
+  useEffect(() => {
+    return () => {
+      if (roadmapId && nodeId) {
+        updateNodeScrollProgress(roadmapId, nodeId, maxScrollRef.current);
+      }
+    };
+  }, [roadmapId, nodeId, updateNodeScrollProgress]);
+
   // ─── Phase 2: On-demand content loading ───
   useEffect(() => {
     if (!node || !roadmapId || !nodeId) return;
@@ -69,7 +227,7 @@ export default function MaterialScreen() {
     const prereqs = node.prerequisites?.length
       ? `Prerequisites: ${node.prerequisites.join(', ')}`
       : 'No prerequisites';
-    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}.`;
+    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, NEVER use LaTeX (like $ or \\frac). Use plain text and standard Unicode math symbols only (e.g. x² instead of x^2, or a/b instead of \\frac{a}{b}).`;
 
     generateModuleContent(
       roadmapId,
@@ -85,9 +243,20 @@ export default function MaterialScreen() {
     setHasAutoCompleted(false);
     setShowConfetti(false);
     setContentHeight(0);
+    scrollbarY.setValue(0);
     hasTriggeredFetch.current = false;
+
+    // Reset progress tracking for new node
+    maxScrollRef.current = useRoadmapStore.getState().roadmaps.find(r => r.id === roadmapId)?.nodes.find(n => n.id === nodeId)?.maxScrollProgress || 0;
+    isFrontierRef.current = false;
+    setIsFrontier(false);
+
+    headingsRef.current = [];
+    lastSnappedIdRef.current = null;
+    lastActiveHeadingRef.current = null;
+
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-  }, [nodeId]);
+  }, [nodeId, roadmapId, scrollbarY]);
 
   // Check if content fits when contentHeight or layoutHeight changes
   useEffect(() => {
@@ -96,6 +265,7 @@ export default function MaterialScreen() {
       if (totalScrollable <= 120 && !hasAutoCompleted && !node?.isCompleted && roadmapId && nodeId) {
         setHasAutoCompleted(true);
         markNodeCompleted(roadmapId, nodeId);
+        triggerCompletionHaptics();
         if (!nextId) {
           setShowConfetti(true);
         }
@@ -106,17 +276,63 @@ export default function MaterialScreen() {
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      
+      let currentPercentage = 0;
+      if (contentSize.height > layoutMeasurement.height) {
+        const scrollableHeight = contentSize.height - layoutMeasurement.height;
+        currentPercentage = Math.max(0, Math.min(1, contentOffset.y / scrollableHeight));
+        
+        if (!isDragging.current) {
+          const trackHeight = layoutMeasurement.height - bubbleHeight;
+          scrollbarY.setValue(currentPercentage * trackHeight);
+        }
+      }
+
+      // Check normal scroll heading haptics
+      if (!isDragging.current) {
+        const scrollYVal = contentOffset.y;
+        let activeId = null;
+        for (let i = headingsRef.current.length - 1; i >= 0; i--) {
+          const heading = headingsRef.current[i];
+          const headingScrollY = markdownYRef.current + heading.y - 20;
+          if (scrollYVal >= headingScrollY - 10) {
+            activeId = heading.id;
+            break;
+          }
+        }
+        if (activeId !== lastActiveHeadingRef.current) {
+          if (activeId !== null) {
+            Haptics.selectionAsync();
+          }
+          lastActiveHeadingRef.current = activeId;
+        }
+      }
+
+      // Check frontier status
+      const threshold = maxScrollRef.current - 0.01;
+      const currentIsFrontier = currentPercentage >= threshold;
+      if (currentIsFrontier !== isFrontierRef.current) {
+        isFrontierRef.current = currentIsFrontier;
+        setIsFrontier(currentIsFrontier);
+      }
+      if (currentPercentage > maxScrollRef.current) {
+        maxScrollRef.current = currentPercentage;
+      }
+
+      showScrollbar();
+
       const reachedBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 20;
 
       if (reachedBottom && !hasAutoCompleted && !node?.isCompleted && roadmapId && nodeId) {
         setHasAutoCompleted(true);
         markNodeCompleted(roadmapId, nodeId);
+        triggerCompletionHaptics();
         if (!nextId) {
           setShowConfetti(true);
         }
       }
     },
-    [hasAutoCompleted, node?.isCompleted, roadmapId, nodeId, markNodeCompleted, nextId]
+    [hasAutoCompleted, node?.isCompleted, roadmapId, nodeId, markNodeCompleted, nextId, showScrollbar, scrollbarY]
   );
 
   const navigateToNode = (targetNodeId: string | null) => {
@@ -152,41 +368,41 @@ export default function MaterialScreen() {
     return {
       body: {
         color: fgColor,
-        fontSize: 16,
-        lineHeight: 26,
+        fontSize: 16 * fontSizeMultiplier,
+        lineHeight: 26 * fontSizeMultiplier,
         fontFamily: "SpaceGrotesk_400Regular",
       },
       heading1: {
         color: fgColor,
-        fontSize: 26,
+        fontSize: 26 * fontSizeMultiplier,
         fontFamily: "SpaceGrotesk_700Bold",
         marginTop: 24,
         marginBottom: 12,
-        lineHeight: 34,
+        lineHeight: 34 * fontSizeMultiplier,
         textTransform: "uppercase" as const,
       },
       heading2: {
         color: fgColor,
-        fontSize: 20,
+        fontSize: 20 * fontSizeMultiplier,
         fontFamily: "SpaceGrotesk_700Bold",
         marginTop: 20,
         marginBottom: 10,
-        lineHeight: 28,
+        lineHeight: 28 * fontSizeMultiplier,
         textTransform: "uppercase" as const,
       },
       heading3: {
         color: fgColor,
-        fontSize: 17,
+        fontSize: 17 * fontSizeMultiplier,
         fontFamily: "SpaceGrotesk_700Bold",
         marginTop: 16,
         marginBottom: 8,
-        lineHeight: 24,
+        lineHeight: 24 * fontSizeMultiplier,
         textTransform: "uppercase" as const,
       },
       paragraph: {
         color: fgColor,
-        fontSize: 15,
-        lineHeight: 24,
+        fontSize: 15 * fontSizeMultiplier,
+        lineHeight: 24 * fontSizeMultiplier,
         marginTop: 8,
         marginBottom: 8,
         fontFamily: "SpaceGrotesk_400Regular",
@@ -218,7 +434,7 @@ export default function MaterialScreen() {
       code_inline: {
         backgroundColor: isDark ? "#242424" : "#f1f1f1",
         color: accentYellow,
-        fontSize: 14,
+        fontSize: 14 * fontSizeMultiplier,
         fontFamily: "monospace",
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -229,9 +445,9 @@ export default function MaterialScreen() {
       code_block: {
         backgroundColor: contrastBg,
         color: fgColor,
-        fontSize: 13,
+        fontSize: 13 * fontSizeMultiplier,
         fontFamily: "monospace",
-        lineHeight: 20,
+        lineHeight: 20 * fontSizeMultiplier,
         padding: 16,
         borderRadius: 12,
         borderWidth: 3,
@@ -241,9 +457,9 @@ export default function MaterialScreen() {
       fence: {
         backgroundColor: contrastBg,
         color: fgColor,
-        fontSize: 13,
+        fontSize: 13 * fontSizeMultiplier,
         fontFamily: "monospace",
-        lineHeight: 20,
+        lineHeight: 20 * fontSizeMultiplier,
         padding: 16,
         borderRadius: 12,
         borderWidth: 3,
@@ -258,8 +474,8 @@ export default function MaterialScreen() {
       },
       list_item: {
         color: fgColor,
-        fontSize: 15,
-        lineHeight: 24,
+        fontSize: 15 * fontSizeMultiplier,
+        lineHeight: 24 * fontSizeMultiplier,
         marginBottom: 4,
         fontFamily: "SpaceGrotesk_400Regular",
       },
@@ -305,10 +521,43 @@ export default function MaterialScreen() {
     accentYellow,
     trueCyan,
     accentCyan,
+    fontSizeMultiplier,
   ]);
 
-  // Custom rules to force correct text color inside code blocks
+  const handleHeadingLayout = useCallback((key: string, y: number) => {
+    const existing = headingsRef.current.find((b) => b.id === key);
+    if (existing && existing.y === y) return;
+    headingsRef.current = headingsRef.current.filter((b) => b.id !== key);
+    headingsRef.current.push({ id: key, y });
+    headingsRef.current.sort((a, b) => a.y - b.y);
+  }, []);
+
+  // Custom rules to force correct text color inside code blocks and capture headings
   const markdownRules = useMemo<RenderRules>(() => ({
+    heading1: (node, children, _parent, styles) => (
+      <View
+        key={node.key}
+        onLayout={(e) => handleHeadingLayout(node.key, e.nativeEvent.layout.y)}
+      >
+        <Text style={styles.heading1}>{children}</Text>
+      </View>
+    ),
+    heading2: (node, children, _parent, styles) => (
+      <View
+        key={node.key}
+        onLayout={(e) => handleHeadingLayout(node.key, e.nativeEvent.layout.y)}
+      >
+        <Text style={styles.heading2}>{children}</Text>
+      </View>
+    ),
+    heading3: (node, children, _parent, styles) => (
+      <View
+        key={node.key}
+        onLayout={(e) => handleHeadingLayout(node.key, e.nativeEvent.layout.y)}
+      >
+        <Text style={styles.heading3}>{children}</Text>
+      </View>
+    ),
     fence: (node, _children, _parent, styles) => (
       <View
         key={node.key}
@@ -323,9 +572,9 @@ export default function MaterialScreen() {
         <Text
           style={{
             color: fgColor,
-            fontSize: 13,
+            fontSize: 13 * fontSizeMultiplier,
             fontFamily: "monospace",
-            lineHeight: 20,
+            lineHeight: 20 * fontSizeMultiplier,
           }}
         >
           {node.content}
@@ -346,23 +595,22 @@ export default function MaterialScreen() {
         <Text
           style={{
             color: fgColor,
-            fontSize: 13,
+            fontSize: 13 * fontSizeMultiplier,
             fontFamily: "monospace",
-            lineHeight: 20,
+            lineHeight: 20 * fontSizeMultiplier,
           }}
         >
           {node.content}
         </Text>
       </View>
     ),
-  }), [contrastBg, fgColor]);
+  }), [contrastBg, fgColor, fontSizeMultiplier]);
 
   // ─── Sources from content ───
   const sources = content?.sources ?? [];
 
   // ─── Render resolved images ───
-  const heroImage = content?.imageQueries?.find((q) => q.placement === 'hero');
-  const inlineImages = content?.imageQueries?.filter((q) => q.placement !== 'hero') ?? [];
+  const images = content?.imageQueries ?? [];
 
   const memoizedMarkdown = useMemo(() => {
     if (!content?.markdownBody) return null;
@@ -397,21 +645,8 @@ export default function MaterialScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* Loading header */}
-            <View className="px-5 pt-4 pb-2">
-              <View className="flex-row items-center">
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: isDark ? '#d97706' : '#f59e0b',
-                    marginRight: 8,
-                  }}
-                />
-                <Text className="text-xs font-space-bold uppercase tracking-wider text-neoFg/50 dark:text-neoFgDark/50">
-                  Generating content...
-                </Text>
-              </View>
+            <View className="pt-6 pb-2 items-center opacity-70 w-full">
+              <StandingWaveLoader width={screenWidth} height={24} />
             </View>
             <ModuleLoadingSkeleton />
 
@@ -440,8 +675,9 @@ export default function MaterialScreen() {
           </ScrollView>
         ) : (
           // ─── Content Loaded ───
-          <ScrollView
-            ref={scrollViewRef}
+          <View className="flex-1">
+            <ScrollView
+              ref={scrollViewRef}
             onScroll={handleScroll}
             scrollEventThrottle={32}
             removeClippedSubviews={true}
@@ -455,17 +691,7 @@ export default function MaterialScreen() {
             onContentSizeChange={(_, h) => setContentHeight(h)}
             onLayout={(e) => setLayoutHeight(e.nativeEvent.layout.height)}
           >
-            {/* Hero image */}
-            {heroImage && (
-              <View className="mb-4 rounded-xl border-3 border-neoFg dark:border-neoFgDark overflow-hidden">
-                <Image
-                  source={{ uri: resolveImageUrl(heroImage.query) }}
-                  style={{ width: '100%' as any, height: 200 }}
-                  resizeMode="cover"
-                  accessibilityLabel={heroImage.alt}
-                />
-              </View>
-            )}
+
 
             {/* Key Takeaways */}
             {content?.keyTakeaways && content.keyTakeaways.length > 0 && (
@@ -494,7 +720,9 @@ export default function MaterialScreen() {
             ) : null}
 
             {/* Markdown body */}
-            {memoizedMarkdown}
+            <View onLayout={(e) => markdownYRef.current = e.nativeEvent.layout.y}>
+              {memoizedMarkdown}
+            </View>
 
             {/* Mermaid diagrams */}
             {content?.mermaidDiagrams && content.mermaidDiagrams.length > 0 && (
@@ -509,20 +737,17 @@ export default function MaterialScreen() {
               </View>
             )}
 
-            {/* Inline images */}
-            {inlineImages.length > 0 && (
+            {/* 
+              Images temporarily disabled for beta release (backend 500 error on Hugging Face FLUX)
+              
+            {images.length > 0 && (
               <View className="mt-4">
-                {inlineImages.map((img, i) => (
+                {images.map((img, i) => (
                   <View
                     key={`img-${i}`}
                     className="mb-4 rounded-xl border-3 border-neoFg dark:border-neoFgDark overflow-hidden"
                   >
-                    <Image
-                      source={{ uri: resolveImageUrl(img.query) }}
-                      style={{ width: '100%' as any, height: 200 }}
-                      resizeMode="cover"
-                      accessibilityLabel={img.alt}
-                    />
+                    <FluxImage query={img.query} alt={img.alt} />
                     <View className="px-3 py-2 bg-neoMain dark:bg-neoMainDark border-t-2 border-neoFg/20 dark:border-neoFgDark/20">
                       <Text className="text-[10px] font-mono text-neoFg/60 dark:text-neoFgDark/60">
                         {img.alt}
@@ -532,6 +757,7 @@ export default function MaterialScreen() {
                 ))}
               </View>
             )}
+            */}
 
             {/* Completion badge */}
             {node.isCompleted && (
@@ -543,6 +769,65 @@ export default function MaterialScreen() {
               </View>
             )}
           </ScrollView>
+
+          {/* Fast Scrollbar Bubble */}
+          {!isContentLoading && contentHeight > layoutHeight && (
+            <Animated.View
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: 0,
+                height: bubbleHeight,
+                opacity: scrollbarOpacity,
+                transform: [{
+                  translateY: scrollbarY.interpolate({
+                    inputRange: [0, Math.max(1, layoutHeight - bubbleHeight)],
+                    outputRange: [0, Math.max(1, layoutHeight - bubbleHeight)],
+                    extrapolate: 'clamp',
+                  })
+                }],
+                zIndex: 50,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              {showFontControls && (
+                <View className="mr-2 flex-row items-center bg-neoCyan dark:bg-neoCyanDark rounded-full border-3 border-neoFg dark:border-neoFgDark px-1 py-1 shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#e8e8e8]">
+                  <Pressable 
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setFontSizeMultiplier(Math.max(0.7, fontSizeMultiplier - 0.1));
+                      showScrollbar();
+                    }}
+                    className="w-8 h-8 mr-1 items-center justify-center rounded-full bg-white/20 active:bg-white/40"
+                  >
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false, marginBottom: 2 }}>a</Text>
+                  </Pressable>
+                  <Pressable 
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setFontSizeMultiplier(Math.min(1.5, fontSizeMultiplier + 0.1));
+                      showScrollbar();
+                    }}
+                    className="w-8 h-8 items-center justify-center rounded-full bg-white/20 active:bg-white/40"
+                  >
+                    <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false, marginBottom: 2 }}>A</Text>
+                  </Pressable>
+                </View>
+              )}
+              <View
+                {...panResponder.panHandlers}
+                className={`w-8 h-full rounded-full border-3 border-neoFg dark:border-neoFgDark items-center justify-center shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#e8e8e8] ${
+                  isFrontier ? 'bg-neoPink dark:bg-neoPinkDark' : 'bg-neoCyan dark:bg-neoCyanDark'
+                }`}
+              >
+                <View className="w-1.5 h-1.5 rounded-full bg-neoBg dark:bg-neoBgDark mb-1" />
+                <View className="w-1.5 h-1.5 rounded-full bg-neoBg dark:bg-neoBgDark mb-1" />
+                <View className="w-1.5 h-1.5 rounded-full bg-neoBg dark:bg-neoBgDark" />
+              </View>
+            </Animated.View>
+          )}
+        </View>
         )}
 
         {/* Footer Navigation */}

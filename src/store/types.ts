@@ -33,6 +33,7 @@ export type RoadmapNode = {
   isCompleted: boolean;
   contentStatus: ContentStatus;
   content?: ModuleContent;
+  maxScrollProgress?: number;
 };
 
 // ─── Roadmap Structure ───
@@ -57,6 +58,9 @@ export interface RoadmapStore {
   setRoadmaps: (roadmaps: Roadmap[]) => void;
   setModuleStatus: (roadmapId: string, moduleId: string, status: ContentStatus) => void;
   injectModuleContent: (roadmapId: string, moduleId: string, content: ModuleContent) => void;
+  updateNodeScrollProgress: (roadmapId: string, nodeId: string, progress: number) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  fontSizeMultiplier: number;
+  setFontSizeMultiplier: (multiplier: number) => void;
 }

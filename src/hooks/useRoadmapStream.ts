@@ -103,7 +103,7 @@ export function useRoadmapStream() {
         const response = await fetch(ENDPOINTS.ROADMAP, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt: prompt + " (IMPORTANT: Do not use LaTeX or markdown math blocks. Use standard unicode symbols for any math terms)" }),
           signal: controller.signal,
         });
 

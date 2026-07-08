@@ -16,6 +16,7 @@ import { useRouter } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
 import { useRoadmapStream } from "../../src/hooks/useRoadmapStream";
 import { LoadingOverlay } from "../../src/components/LoadingOverlay";
+import { BetaModal } from "../../src/components/BetaModal";
 import Svg, { Path, Line, Circle, Rect, Polyline } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -27,34 +28,66 @@ const MicIcon = ({ color }: { color: string }) => (
   </Svg>
 );
 
-const GlobeIcon = ({ color }: { color: string }) => (
+const MagnetIcon = ({ color }: { color: string }) => (
   <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <Circle cx="12" cy="12" r="10" />
-    <Path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    <Path d="M2 12h20" />
+    <Path d="M18 12V4h-3v8a3 3 0 0 1-6 0V4H6v8a6 6 0 0 0 12 0Z" />
+    <Path d="M21 8a9 9 0 0 1-18 0" />
+    <Path d="M12 19v3" />
+    <Path d="M9 21h6" />
   </Svg>
 );
 
-const ServerIcon = ({ color }: { color: string }) => (
+const CalculusIcon = ({ color }: { color: string }) => (
   <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <Rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-    <Rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-    <Line x1="6" x2="6.01" y1="6" y2="6" />
-    <Line x1="6" x2="6.01" y1="18" y2="18" />
+    <Path d="M14.5 5c0-2-3-2-3 0v14c0 2 3 2 3 0" />
+    <Path d="M3 12h18" />
+    <Path d="M12 3v18" />
+    <Path d="M6 16c3-1 4-7 8-7s3 3 5 3" />
   </Svg>
 );
 
-const ChartIcon = ({ color }: { color: string }) => (
+const BrainIcon = ({ color }: { color: string }) => (
   <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M3 3v18h18" />
-    <Path d="m19 9-5 5-4-4-3 3" />
+    <Path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5M9.5 2A4.5 4.5 0 0 0 5 6.5A3.5 3.5 0 0 0 7 13a3.5 3.5 0 0 0-1.5 5A4.5 4.5 0 0 0 9.5 22" />
+    <Path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5M14.5 2A4.5 4.5 0 0 1 19 6.5A3.5 3.5 0 0 1 17 13a3.5 3.5 0 0 1 1.5 5A4.5 4.5 0 0 1 14.5 22" />
+    <Path d="M12 8h-2M12 12h-3M12 16h-2" />
+    <Path d="M12 8h2M12 12h3M12 16h2" />
   </Svg>
 );
 
-const PhoneIcon = ({ color }: { color: string }) => (
+const MicroscopeIcon = ({ color }: { color: string }) => (
   <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <Rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-    <Line x1="12" x2="12.01" y1="18" y2="18" />
+    <Path d="M6 18h8" />
+    <Path d="M3 22h18" />
+    <Path d="M14 22a7 7 0 1 0-14 0" />
+    <Path d="M9 14h2" />
+    <Path d="M9 12a3 3 0 0 1-3-3V6h6v3a3 3 0 0 1-3 3Z" />
+    <Path d="M12 6h4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <Path d="M12 2h2" />
+  </Svg>
+);
+
+const SociologyIcon = ({ color }: { color: string }) => (
+  <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <Circle cx="12" cy="6" r="3" />
+    <Circle cx="6" cy="18" r="3" />
+    <Circle cx="18" cy="18" r="3" />
+    <Line x1="12" y1="9" x2="6" y2="15" />
+    <Line x1="12" y1="9" x2="18" y2="15" />
+    <Line x1="9" y1="18" x2="15" y2="18" />
+    <Circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
+  </Svg>
+);
+
+const KinematicsIcon = ({ color }: { color: string }) => (
+  <Svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <Line x1="2" y1="21" x2="22" y2="21" />
+    <Path d="M4 21c2-10 10-16 14-8" strokeDasharray="3 3" />
+    <Line x1="4" y1="21" x2="8" y2="13" />
+    <Polyline points="5 13 8 13 8 16" />
+    <Circle cx="18" cy="13" r="2.5" fill={color} />
+    <Path d="M14 11l2 1" />
+    <Path d="M15 9l1 2" />
   </Svg>
 );
 
@@ -98,52 +131,46 @@ const InstructionText = ({ isDark }: { isDark: boolean }) => {
 };
 
 const SUGGESTED_TOPICS = [
-  { title: "React", subtitle: "Frontend", icon: GlobeIcon },
-  { title: "Node.js", subtitle: "Backend", icon: ServerIcon },
-  { title: "Python", subtitle: "Machine Learning", icon: ChartIcon },
-  { title: "Mobile", subtitle: "React Native", icon: PhoneIcon },
-  { title: "System", subtitle: "Architecture", icon: ServerIcon },
-  { title: "UI/UX", subtitle: "Design Basics", icon: GlobeIcon },
+  { title: "Electricity", subtitle: "Physics", icon: MagnetIcon },
+  { title: "Calculus", subtitle: "Mathematics", icon: CalculusIcon },
+  { title: "Psychology", subtitle: "Social Science", icon: BrainIcon },
+  { title: "Microbiology", subtitle: "Biology", icon: MicroscopeIcon },
+  { title: "Sociology", subtitle: "Human Behavior", icon: SociologyIcon },
+  { title: "Kinematics", subtitle: "Mechanics", icon: KinematicsIcon },
 ];
 
 const ALL_TOPICS = [
-  // Web & Frontend
-  "React", "React Native", "Next.js", "Vue.js", "Angular", "Svelte", 
-  "HTML & CSS", "JavaScript", "TypeScript", "Tailwind CSS", "Bootstrap",
-  "Redux", "Webpack", "Vite", "Framer Motion", "Three.js", "WebAssembly",
+  // Physics
+  "Electromagnetism", "Kinematics", "Thermodynamics", "Optics", "Electrostatics", 
+  "Newton's Laws of Motion", "Fluid Mechanics", "Gravitation", "Wave Optics", 
+  "Quantum Mechanics", "Nuclear Physics", "Classical Mechanics",
   
-  // Backend & APIs
-  "Node.js", "Express.js", "NestJS", "Python", "Django", "Flask", "FastAPI",
-  "Java", "Spring Boot", "C#", ".NET", "Ruby on Rails", "Go", "Rust", "C++", 
-  "PHP", "Laravel", "GraphQL", "REST APIs", "gRPC", "WebSockets",
-
-  // Databases
-  "SQL", "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch",
-  "Cassandra", "DynamoDB", "Firebase", "Supabase", "Prisma", "Drizzle ORM",
+  // Mathematics
+  "Calculus", "Limits & Continuity", "Derivatives", "Integrals", "Differential Equations",
+  "Algebra", "Trigonometry", "Coordinate Geometry", "Probability & Statistics", 
+  "Matrices & Determinants", "Vectors", "Complex Numbers", "Linear Algebra",
   
-  // DevOps & Cloud
-  "AWS", "Google Cloud", "Microsoft Azure", "Docker", "Kubernetes",
-  "Terraform", "CI/CD", "GitHub Actions", "Jenkins", "Linux", "Bash Scripting",
-  "Nginx", "Apache", "Serverless", "Microservices",
+  // Chemistry
+  "Organic Chemistry", "Chemical Bonding", "Periodic Table", "Stoichiometry", 
+  "Chemical Kinetics", "Thermodynamics in Chemistry", "Electrochemistry", 
+  "Inorganic Chemistry", "Biochemistry", "Acids & Bases", "Atomic Structure",
   
-  // CS Fundamentals & AI
-  "Data Structures", "Algorithms", "System Architecture", "System Design",
-  "Design Patterns", "Object-Oriented Programming", "Functional Programming",
-  "Machine Learning", "Deep Learning", "Neural Networks", "NLP",
-  "Computer Vision", "TensorFlow", "PyTorch", "OpenAI API", "LangChain",
+  // Biology
+  "Microbiology", "Genetics", "Cell Biology", "Human Anatomy & Physiology", 
+  "Plant Physiology", "Evolution & Ecology", "Molecular Biology", "Immunology", 
+  "Biotechnology", "Photosynthesis", "Circulatory System",
   
-  // Mobile, Game & Web3
-  "Swift", "iOS Development", "Kotlin", "Android Development", "Flutter",
-  "Unity", "Unreal Engine", "Game Development", "C",
-  "Web3", "Solidity", "Smart Contracts", "Ethereum", "Blockchain",
-
-  // Design & Product
-  "UI/UX Design", "Figma", "Wireframing", "Prototyping", "Design Systems",
-  "Agile Methodology", "Scrum", "Product Management"
+  // Social Sciences
+  "Psychology", "Sociology", "Cognitive Science", "Anthropology", 
+  "Microeconomics", "Macroeconomics", "Behavioral Economics", "Social Psychology",
+  
+  // CS & Applied Sciences
+  "Computer Science Basics", "Algorithms & Logic", "Data Science", "Astronomy & Astrophysics"
 ];
 
 export default function HomeScreen() {
   const [prompt, setPrompt] = useState("");
+  const [betaModalVisible, setBetaModalVisible] = useState(false);
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -196,6 +223,16 @@ export default function HomeScreen() {
   const handleSubmitTopic = async (topicQuery: string) => {
     const trimmed = topicQuery.trim();
     if (!trimmed || isLoading) return;
+
+    // Check if the topic is one of the SUGGESTED_TOPICS (case-insensitive)
+    const isSuggested = SUGGESTED_TOPICS.some(
+      (topic) => topic.title.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    if (!isSuggested) {
+      setBetaModalVisible(true);
+      return;
+    }
 
     setPrompt(trimmed);
     try {
@@ -332,6 +369,7 @@ export default function HomeScreen() {
       </Animated.View>
 
       {isLoading && <LoadingOverlay />}
+      <BetaModal visible={betaModalVisible} onClose={() => setBetaModalVisible(false)} />
     </View>
   );
 }
