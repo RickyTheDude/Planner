@@ -1,0 +1,66 @@
+# Learn more: https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native Credentials & Keys
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+
+# Metro Bundler Cache
+.metro-health-check*
+
+# Package Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.*
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+*.pem
+
+# Environment Secrets
+.env
+.env*.local
+
+# TypeScript Cache
+*.tsbuildinfo
+
+# IDE/Editors settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Agentic / AI Coding Workspace folders
+.claude/
+.agents/
+.gemini/
+
+# Generated native folders (Exclude from git if using continuous native generation)
+/ios
+/android
+
+# Native local configurations (fallback if Android/iOS directories are tracked)
+android/local.properties
+android/app/build/
+android/.cxx/
+ios/local.properties
+ios/build/
