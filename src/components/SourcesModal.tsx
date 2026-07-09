@@ -48,11 +48,8 @@ export function SourcesModal({ visible, onClose, sources }: SourcesModalProps) {
               className="flex-row items-start justify-between border-b-2 border-dashed border-neoFg/20 dark:border-neoFgDark/20 pb-4 mb-4 pr-10 active:opacity-85"
             >
               <View className="flex-1">
-                <Text className="text-sm font-space-bold text-neoFg/60 dark:text-neoFgDark/60 uppercase">
-                  SAY HELLO!
-                </Text>
                 <Text className="text-lg font-space-bold text-neoFg dark:text-neoFgDark uppercase tracking-tight">
-                  Sources & Ref
+                  Sources & References
                 </Text>
               </View>
 

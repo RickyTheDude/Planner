@@ -12,9 +12,14 @@ import {
   PanResponder,
 } from "react-native";
 import { useColorScheme } from "nativewind";
+
+
+
 import type { RenderRules } from "@ronradtke/react-native-markdown-display";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import Markdown from "@ronradtke/react-native-markdown-display";
+import SyntaxHighlighter from "react-native-syntax-highlighter";
+import { vs2015, docco } from "react-syntax-highlighter/styles/hljs";
 import ConfettiCannon from "react-native-confetti-cannon";
 import * as Haptics from 'expo-haptics';
 
@@ -26,7 +31,93 @@ import { ModuleLoadingSkeleton } from "../../../src/components/ModuleLoadingSkel
 import { StandingWaveLoader } from "../../../src/components/StandingWaveLoader";
 import { resolveImageUrl } from "../../../src/services/imageService";
 import { FluxImage } from "../../../src/components/FluxImage";
+import { MathView } from "../../../src/components/MathView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// ─── Math / LaTeX Utilities ───
+
+type ContentSegment =
+  | { type: 'markdown'; content: string }
+  | { type: 'displaymath'; content: string };
+
+/**
+ * Converts inline LaTeX ($...$) to readable Unicode.
+ * Display math ($$...$$) is handled separately by splitIntoMathSegments.
+ */
+function stripInlineMath(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\$([^$\n]+?)\$/g, (_m, inner: string) => latexToUnicode(inner.trim()))
+    .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2')
+    .replace(/\\text\{([^}]*)\}/g, '$1')
+    .replace(/\\mathrm\{([^}]*)\}/g, '$1')
+    .replace(/\\mathbf\{([^}]*)\}/g, '$1')
+    .replace(/\\sqrt\{([^}]*)\}/g, '√($1)')
+    .replace(/\\left|\\right/g, '')
+    .replace(/\\cdot/g, '·').replace(/\\times/g, '×')
+    .replace(/\\div/g, '÷').replace(/\\pm/g, '±')
+    .replace(/\\leq/g, '≤').replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠').replace(/\\approx/g, '≈')
+    .replace(/\\infty/g, '∞').replace(/\\Delta/g, 'Δ')
+    .replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β')
+    .replace(/\\gamma/g, 'γ').replace(/\\theta/g, 'θ')
+    .replace(/\\pi/g, 'π').replace(/\\mu/g, 'μ')
+    .replace(/\\sigma/g, 'σ').replace(/\\lambda/g, 'λ')
+    .replace(/\\rho/g, 'ρ').replace(/\\omega/g, 'ω')
+    .replace(/\^\{([^}]*)\}/g, (_m, e: string) => {
+      const s: Record<string, string> = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','n':'ⁿ' };
+      return e.length === 1 && s[e] ? s[e] : `^${e}`;
+    })
+    .replace(/\_\{([^}]*)\}/g, (_m, e: string) => {
+      const s: Record<string, string> = { '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋' };
+      return e.length === 1 && s[e] ? s[e] : `_${e}`;
+    })
+    .replace(/\\(?=[A-Za-z])/g, '');
+}
+
+function latexToUnicode(expr: string): string {
+  return expr
+    .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2')
+    .replace(/\\text\{([^}]*)\}/g, '$1')
+    .replace(/\\sqrt\{([^}]*)\}/g, '√($1)')
+    .replace(/\\cdot/g, '·').replace(/\\times/g, '×')
+    .replace(/\\leq/g, '≤').replace(/\\geq/g, '≥')
+    .replace(/\\neq/g, '≠').replace(/\\approx/g, '≈')
+    .replace(/\\infty/g, '∞').replace(/\\Delta/g, 'Δ')
+    .replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β')
+    .replace(/\\pi/g, 'π').replace(/\\mu/g, 'μ')
+    .replace(/\\sigma/g, 'σ').replace(/\\lambda/g, 'λ')
+    .replace(/\^\{([^}]*)\}/g, '^$1')
+    .replace(/\_\{([^}]*)\}/g, '_$1')
+    .replace(/\\[a-zA-Z]+/g, '')
+    .replace(/[{}]/g, '');
+}
+
+/**
+ * Splits a markdown body into alternating markdown-text and display-math segments.
+ * Display math: $$...$$  — rendered via KaTeX (MathView).
+ * Inline math:  $...$    — converted to unicode within the markdown text.
+ */
+function splitIntoMathSegments(text: string): ContentSegment[] {
+  if (!text) return [];
+  const segments: ContentSegment[] = [];
+  // Split on $$...$$ blocks
+  const parts = text.split(/(\$\$[\s\S]*?\$\$)/);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!part) continue;
+    if (part.startsWith('$$') && part.endsWith('$$') && part.length > 4) {
+      // Display math — extract inner expression
+      const inner = part.slice(2, -2).trim();
+      if (inner) segments.push({ type: 'displaymath', content: inner });
+    } else {
+      // Regular markdown — strip inline math to unicode
+      const stripped = stripInlineMath(part);
+      if (stripped.trim()) segments.push({ type: 'markdown', content: stripped });
+    }
+  }
+  return segments.length > 0 ? segments : [{ type: 'markdown', content: stripInlineMath(text) }];
+}
 
 const triggerCompletionHaptics = () => {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -227,7 +318,7 @@ export default function MaterialScreen() {
     const prereqs = node.prerequisites?.length
       ? `Prerequisites: ${node.prerequisites.join(', ')}`
       : 'No prerequisites';
-    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, NEVER use LaTeX (like $ or \\frac). Use plain text and standard Unicode math symbols only (e.g. x² instead of x^2, or a/b instead of \\frac{a}{b}).`;
+    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, use proper LaTeX formatting: use $$...$$ for display equations and $...$ for inline math. ALSO IMPORTANT: For Mermaid diagrams, NEVER use colons, parentheses, or special characters inside node labels. Keep node labels as simple alphanumeric text (e.g., use A[Curve f of x] instead of A[Curve: f(x)]) to prevent syntax errors. CRITICAL: When writing code snippets, ALWAYS wrap them in markdown code blocks with the correct language identifier (e.g., \`\`\`python, \`\`\`java) for syntax highlighting.`;
 
     generateModuleContent(
       roadmapId,
@@ -258,6 +349,8 @@ export default function MaterialScreen() {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   }, [nodeId, roadmapId, scrollbarY]);
 
+
+
   // Check if content fits when contentHeight or layoutHeight changes
   useEffect(() => {
     if (contentHeight > 0 && layoutHeight > 0) {
@@ -272,6 +365,12 @@ export default function MaterialScreen() {
       }
     }
   }, [contentHeight, layoutHeight, hasAutoCompleted, node?.isCompleted, roadmapId, nodeId, markNodeCompleted, nextId]);
+
+  const triggerCompletionHaptics = useCallback(async () => {
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 200);
+    setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 400);
+  }, []);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -321,7 +420,8 @@ export default function MaterialScreen() {
 
       showScrollbar();
 
-      const reachedBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 20;
+      // Increase threshold to 150 to make completion trigger more reliably when entering the bottom padding area
+      const reachedBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 150;
 
       if (reachedBottom && !hasAutoCompleted && !node?.isCompleted && roadmapId && nodeId) {
         setHasAutoCompleted(true);
@@ -558,53 +658,50 @@ export default function MaterialScreen() {
         <Text style={styles.heading3}>{children}</Text>
       </View>
     ),
-    fence: (node, _children, _parent, styles) => (
-      <View
-        key={node.key}
-        style={[
-          styles.fence,
-          {
-            backgroundColor: contrastBg,
-            borderColor: fgColor,
-          },
-        ]}
-      >
-        <Text
-          style={{
-            color: fgColor,
-            fontSize: 13 * fontSizeMultiplier,
-            fontFamily: "monospace",
-            lineHeight: 20 * fontSizeMultiplier,
-          }}
-        >
-          {node.content}
-        </Text>
-      </View>
-    ),
+    fence: (node, _children, _parent, styles) => {
+      const lang = (node.sourceInfo ?? '').toLowerCase().trim();
+      if (lang === 'mermaid') {
+        return (
+          <MermaidBlock
+            key={node.key}
+            code={node.content ?? ''}
+          />
+        );
+      }
+      return (
+        <View key={node.key} style={{ marginVertical: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 3, borderColor: fgColor }}>
+          <SyntaxHighlighter
+            language={lang || 'text'}
+            style={isDark ? vs2015 : docco}
+            highlighter="hljs"
+            fontFamily="monospace"
+            fontSize={13 * fontSizeMultiplier}
+            customStyle={{ padding: 16, margin: 0, backgroundColor: contrastBg }}
+            CodeTag={Text}
+            PreTag={View}
+          >
+            {node.content}
+          </SyntaxHighlighter>
+        </View>
+      );
+    },
     code_block: (node, _children, _parent, styles) => (
-      <View
-        key={node.key}
-        style={[
-          styles.code_block,
-          {
-            backgroundColor: contrastBg,
-            borderColor: fgColor,
-          },
-        ]}
-      >
-        <Text
-          style={{
-            color: fgColor,
-            fontSize: 13 * fontSizeMultiplier,
-            fontFamily: "monospace",
-            lineHeight: 20 * fontSizeMultiplier,
-          }}
+      <View key={node.key} style={{ marginVertical: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 3, borderColor: fgColor }}>
+        <SyntaxHighlighter
+          language="text"
+          style={isDark ? vs2015 : docco}
+          highlighter="hljs"
+          fontFamily="monospace"
+          fontSize={13 * fontSizeMultiplier}
+          customStyle={{ padding: 16, margin: 0, backgroundColor: contrastBg }}
+          CodeTag={Text}
+          PreTag={View}
         >
           {node.content}
-        </Text>
+        </SyntaxHighlighter>
       </View>
     ),
-  }), [contrastBg, fgColor, fontSizeMultiplier]);
+  }), [contrastBg, fgColor, fontSizeMultiplier, isDark]);
 
   // ─── Sources from content ───
   const sources = content?.sources ?? [];
@@ -612,9 +709,23 @@ export default function MaterialScreen() {
   // ─── Render resolved images ───
   const images = content?.imageQueries ?? [];
 
-  const memoizedMarkdown = useMemo(() => {
+  // Split content into markdown + display-math segments for KaTeX rendering
+  const memoizedContent = useMemo(() => {
     if (!content?.markdownBody) return null;
-    return <Markdown style={markdownStyles} rules={markdownRules}>{content.markdownBody}</Markdown>;
+    const segments = splitIntoMathSegments(content.markdownBody);
+    return (
+      <>
+        {segments.map((seg, idx) =>
+          seg.type === 'displaymath' ? (
+            <MathView key={`math-${idx}`} expression={seg.content} />
+          ) : (
+            <Markdown key={`md-${idx}`} style={markdownStyles} rules={markdownRules}>
+              {seg.content}
+            </Markdown>
+          )
+        )}
+      </>
+    );
   }, [markdownStyles, markdownRules, content?.markdownBody]);
 
   return (
@@ -626,6 +737,7 @@ export default function MaterialScreen() {
           headerStyle: {
             backgroundColor: lightBg,
           },
+
           headerRight: () => (
             <View className={`rounded border-2 border-neoFg dark:border-neoFgDark ${isDone ? 'bg-neoPink dark:bg-neoPinkDark' : 'bg-neoMain dark:bg-neoMainDark'} px-2 py-0.5 mr-2`}>
               <Text className="text-[10px] font-black text-neoFg dark:text-neoFgDark">
@@ -699,14 +811,27 @@ export default function MaterialScreen() {
                 <Text className="text-xs font-space-bold uppercase tracking-wider text-neoFg dark:text-neoFgDark mb-2">
                   Key Takeaways
                 </Text>
-                {content.keyTakeaways.map((takeaway, i) => (
-                  <View key={i} className="flex-row items-start mb-1.5">
-                    <Text className="text-xs font-space-bold text-neoFg dark:text-neoFgDark mr-2">•</Text>
-                    <Text className="flex-1 text-sm font-space text-neoFg dark:text-neoFgDark leading-5">
-                      {takeaway}
-                    </Text>
-                  </View>
-                ))}
+                {content.keyTakeaways.map((takeaway, i) => {
+                  const segments = splitIntoMathSegments(takeaway);
+                  return (
+                    <View key={i} className="flex-row items-start mb-2">
+                      <Text className="text-xs font-space-bold text-neoFg dark:text-neoFgDark mr-2 mt-[2px]">•</Text>
+                      <View className="flex-1">
+                        {segments.map((seg, idx) => 
+                          seg.type === 'displaymath' ? (
+                            <View key={`math-${i}-${idx}`} className="-my-1 w-full">
+                              <MathView expression={seg.content} />
+                            </View>
+                          ) : (
+                            <Text key={`text-${i}-${idx}`} className="text-sm font-space text-neoFg dark:text-neoFgDark leading-5">
+                              {seg.content}
+                            </Text>
+                          )
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             )}
 
@@ -719,9 +844,9 @@ export default function MaterialScreen() {
               </View>
             ) : null}
 
-            {/* Markdown body */}
+            {/* Markdown body (with KaTeX display-math blocks) */}
             <View onLayout={(e) => markdownYRef.current = e.nativeEvent.layout.y}>
-              {memoizedMarkdown}
+              {memoizedContent}
             </View>
 
             {/* Mermaid diagrams */}
@@ -862,14 +987,18 @@ export default function MaterialScreen() {
               </Pressable>
             </View>
 
-            {/* Next button wrapper */}
-            <View className="rounded-xl bg-neoFg dark:bg-neoFgDark">
+            {/* Next button wrapper – opacity via style, no disabled prop to avoid gesture responder crash */}
+            <View
+              className="rounded-xl bg-neoFg dark:bg-neoFgDark"
+              style={{ opacity: node?.isCompleted ? 1 : 0.3 }}
+            >
               <Pressable
                 onPress={() => {
+                  if (!node?.isCompleted) return;
                   if (nextId) {
                     navigateToNode(nextId);
                   } else {
-                    router.navigate(`/roadmap/${roadmapId}`);
+                    router.back();
                   }
                 }}
                 className="min-h-[46px] items-center justify-center rounded-xl border-3 border-neoFg dark:border-neoFgDark px-4 py-2 -translate-x-1 -translate-y-1 bg-neoYellow dark:bg-neoYellowDark active:translate-x-0 active:translate-y-0"

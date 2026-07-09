@@ -100,10 +100,11 @@ export function useRoadmapStream() {
       abortRef.current = controller;
 
       try {
+        const audience = useRoadmapStore.getState().audience;
         const response = await fetch(ENDPOINTS.ROADMAP, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: prompt + " (IMPORTANT: Do not use LaTeX or markdown math blocks. Use standard unicode symbols for any math terms)" }),
+          body: JSON.stringify({ prompt: prompt, ...(audience && { audience }) }),
           signal: controller.signal,
         });
 
@@ -206,6 +207,7 @@ export function useRoadmapStream() {
       abortRef.current = controller;
 
       try {
+        const audience = useRoadmapStore.getState().audience;
         const response = await fetch(ENDPOINTS.MODULE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -215,6 +217,7 @@ export function useRoadmapStream() {
             moduleTitle,
             roadmapTopic,
             context,
+            ...(audience && { audience }),
           }),
           signal: controller.signal,
         });

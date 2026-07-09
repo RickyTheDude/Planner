@@ -50,6 +50,16 @@ export const useRoadmapStore = create<RoadmapStore>()(
       roadmaps: [],
       theme: initialTheme,
       fontSizeMultiplier: 1.0,
+      hasSeenOnboarding: false,
+      audience: null,
+
+      setHasSeenOnboarding: (seen) => {
+        set({ hasSeenOnboarding: seen });
+      },
+
+      setAudience: (audience) => {
+        set({ audience });
+      },
 
       addRoadmap: (roadmap) => {
         set((state) => {

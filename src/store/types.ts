@@ -63,4 +63,8 @@ export interface RoadmapStore {
   setTheme: (theme: 'light' | 'dark') => void;
   fontSizeMultiplier: number;
   setFontSizeMultiplier: (multiplier: number) => void;
+  hasSeenOnboarding: boolean;
+  setHasSeenOnboarding: (seen: boolean) => void;
+  audience: 'school_student' | 'university_student' | 'working_professional' | null;
+  setAudience: (audience: 'school_student' | 'university_student' | 'working_professional' | null) => void;
 }

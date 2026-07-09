@@ -68,6 +68,7 @@ export default function RootLayout() {
           animation: "slide_from_right",
         }}
       >
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: "fade" }} />
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen
           name="roadmap/[id]"

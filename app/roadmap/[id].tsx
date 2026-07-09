@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useColorScheme } from "nativewind";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack, useNavigation } from "expo-router";
 import Svg, { Circle, Path, Text as SvgText, G, Rect, Defs, LinearGradient, Stop } from "react-native-svg";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
 
@@ -41,10 +41,28 @@ function getBezierPath(x1: number, y1: number, x2: number, y2: number): string {
 export default function RoadmapScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const roadmap = useRoadmapStore((s) => s.getRoadmapById(id ?? ""));
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { width: screenWidth } = useWindowDimensions();
+  const isNavigatingRef = useRef(false);
+
+  // Intercept back actions (hardware Android back & default native header back button)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      const actionType = e.data.action.type;
+      if (actionType === "GO_BACK" || actionType === "POP") {
+        if (isNavigatingRef.current) {
+          return;
+        }
+        e.preventDefault();
+        isNavigatingRef.current = true;
+        router.dismissAll();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, router]);
 
   if (!roadmap) {
     return (
@@ -81,7 +99,11 @@ export default function RoadmapScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: roadmap.topic }} />
+      <Stack.Screen
+        options={{
+          title: roadmap.topic,
+        }}
+      />
       <ScrollView
         className="flex-1 bg-neoBg dark:bg-neoBgDark"
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -140,10 +162,12 @@ export default function RoadmapScreen() {
               const fill = isCompleted
                 ? completedFill
                 : isCurrent
-                ? currentFill
+                ? bgColor
                 : lockedFill;
 
               const stroke = isLocked ? lockedStroke : fgColor;
+              const strokeWidth = isCurrent ? 3.5 : 3;
+
               const textFill = isCompleted
                 ? completedText
                 : isCurrent
@@ -154,43 +178,58 @@ export default function RoadmapScreen() {
               const labelX = i % 2 === 0 ? x + NODE_RADIUS + 14 : x - NODE_RADIUS - 14;
               const labelAnchor = i % 2 === 0 ? "start" : "end";
 
-              const PROGRESS_RADIUS = NODE_RADIUS + 6;
+              // Progress ring configuration
+              const PROGRESS_RADIUS = NODE_RADIUS + 4; // Hugs the node closer
               const progress = Math.max(0, Math.min(1, node.maxScrollProgress || 0));
               const circumference = 2 * Math.PI * PROGRESS_RADIUS;
               const strokeDashoffset = circumference - (progress * circumference);
-              const progressStroke = isDark ? "#10b981" : "#059669"; // Green (neoPink)
+              const progressStroke = isDark ? "#10b981" : "#059669"; // Green
+
+              // Angle calculation for the leading edge dot (starts at top, goes clockwise)
+              const angleRad = (-90 + progress * 360) * Math.PI / 180;
+              const dotX = x + PROGRESS_RADIUS * Math.cos(angleRad);
+              const dotY = y + PROGRESS_RADIUS * Math.sin(angleRad);
 
               return (
                 <G key={node.id}>
-                  {/* Outer background ring for current node or nodes with progress */}
-                  {(isCurrent || progress > 0) && !isCompleted && (
+                  {/* Clean progress track for the active node */}
+                  {isCurrent && (
                     <Circle
                       cx={x}
                       cy={y}
                       r={PROGRESS_RADIUS}
                       fill="none"
-                      stroke={isCurrent ? currentFill : (isDark ? "#334155" : "#e2e8f0")}
-                      strokeWidth={2}
-                      strokeDasharray={progress === 0 ? "4,4" : undefined}
-                      opacity={0.4}
+                      stroke={isDark ? "rgba(248, 250, 252, 0.12)" : "rgba(15, 23, 42, 0.08)"}
+                      strokeWidth={1.5}
                     />
                   )}
 
                   {/* Progress ring foreground */}
-                  {!isCompleted && progress > 0 && (
-                    <Circle
-                      cx={x}
-                      cy={y}
-                      r={PROGRESS_RADIUS}
-                      fill="none"
-                      stroke={progressStroke}
-                      strokeWidth={3}
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
-                      strokeLinecap="round"
-                      origin={`${x}, ${y}`}
-                      rotation="-90"
-                    />
+                  {isCurrent && progress > 0 && (
+                    <>
+                      <Circle
+                        cx={x}
+                        cy={y}
+                        r={PROGRESS_RADIUS}
+                        fill="none"
+                        stroke={progressStroke}
+                        strokeWidth={3}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        origin={`${x}, ${y}`}
+                        rotation="-90"
+                      />
+                      {/* Leading edge indicator dot */}
+                      <Circle
+                        cx={dotX}
+                        cy={dotY}
+                        r={3.5}
+                        fill={bgColor}
+                        stroke={progressStroke}
+                        strokeWidth={2}
+                      />
+                    </>
                   )}
 
                   {/* Node circle */}
@@ -200,7 +239,7 @@ export default function RoadmapScreen() {
                     r={NODE_RADIUS}
                     fill={fill}
                     stroke={stroke}
-                    strokeWidth={3}
+                    strokeWidth={strokeWidth}
                   />
 
                   {/* Node number / checkmark */}
@@ -235,7 +274,7 @@ export default function RoadmapScreen() {
                     x={labelX}
                     y={y + 10}
                     textAnchor={labelAnchor}
-                    fill={isDark ? "#64748b" : "#94a3b8"}
+                    fill={isCurrent ? progressStroke : (isDark ? "#64748b" : "#94a3b8")}
                     fontSize={9}
                     fontFamily="SpaceGrotesk_400Regular"
                   >
