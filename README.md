@@ -1,125 +1,150 @@
-# Cognimosity-Plan
+# 🗺️ PLAN & LEARN (Cognimosity-Plan)
 
-A modern, highly performant planner and roadmap application built with **React Native** and **Expo (SDK 57)**. The application features a custom, premium design language.
+[![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-00020d?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React_Native-v0.86-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
+[![NativeWind v4](https://img.shields.io/badge/Styling-NativeWind_v4-38bdf8?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://www.nativewind.dev/)
+[![Zustand](https://img.shields.io/badge/State-Zustand-orange?style=for-the-badge)](https://github.com/pmndrs/zustand)
+[![MMKV](https://img.shields.io/badge/Storage-MMKV_Fast-green?style=for-the-badge)](https://github.com/mrousavy/react-native-mmkv)
 
-## 🚀 Tech Stack
-
-- **Core Framework**: [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (v57.0.0)
-- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (v57.0.0, using file-based routing and Drawer Layout)
-- **Styling**: [Tailwind CSS / NativeWind](https://www.nativewind.dev/) (v4) for responsive utility-first styles
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (lightweight, hook-based state store)
-- **Local Storage**: [React Native MMKV](https://github.com/mrousavy/react-native-mmkv) (ultra-fast, synchronous key-value storage)
-- **Rendering**: Markdown support via `react-native-markdown-display`
+An advanced, AI-powered educational roadmap and curriculum planning application built with **React Native** and **Expo (SDK 57)**. Engineered around a striking, tactile **neobrutalist design system**, PLAN & LEARN delivers real-time learning path generation, interactive visualizations, and adaptive curriculum tuning.
 
 ---
 
-## 🛠️ Getting Started
+## Core Features
+
+*   **🧠 Intelligent Two-Phase Generation & Streaming**
+    *   **Phase 1 (Structure)**: Generates complete, custom step-by-step module maps instantly from any learning topic.
+    *   **Phase 2 (Lazy Content)**: Generates highly comprehensive module content (reading material, LaTeX math, diagrams, citations) on-demand as you progress.
+    *   **Live Stream Parsing**: In-flight partial JSON repair algorithms automatically rebuild chunked streams to display nodes and text incrementally.
+*   **🎓 Audience-Aware Personalization**
+    *   Features a 3-step tactile onboarding workflow that adjusts complexity, tone, and practical application parameters dynamically across three levels:
+        *   **School Student**: Simplified analogies, basic conceptual overviews, and low jargon.
+        *   **University Student**: Technical depth, coding examples, and mathematical foundations.
+        *   **Working Professional**: Architectural scaling, production-grade patterns, and systems engineering.
+*   **Textbook-Grade STEM Rendering**
+    *   **KaTeX Math Expressions**: Embedded display-mode mathematical expressions rendering dynamically via custom sandboxed WebViews.
+    *   **Interactive Mermaid Diagrams**: Dynamic SVG rendering with zoom, pan, and responsive auto-height to visualize complex workflows and system flows.
+    *   **Pollinations AI Image Integration**: Dynamic, contextually relevant, lazy-loaded visual aids positioned selectively to complement reading flow.
+*   **High-Performance Offline-First Architecture**
+    *   **MMKV Synced Storage**: Ultra-fast key-value store powered by `react-native-mmkv` with zero-flash synchronous theme initialization.
+    *   **Fail-Safe Node Migrations**: Automated state schema migrations that shield active roadmaps from breaking changes during app upgrades.
+    *   **Precision Viewport Tracking**: Continuously monitors scroll depth to calculate, persist, and display reading progress rings (with a leading-edge indicator dot) around nodes.
+*   **Neobrutalist Aesthetic**
+    *   Bold high-contrast borders, solid offsets, true-black pure dark mode, tactile haptic feedback (using `expo-haptics`), and modern typography via **Space Grotesk**.
+    *   Delightful custom animations like the **Confetti Cannon** on course completion and the **Standing Wave Loader** replacing traditional spinners.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-Make sure you have Node.js, npm, and the Android/iOS development environments set up on your machine.
+Ensure you have the following installed on your machine:
+*   [Node.js](https://nodejs.org/) (v18 or higher recommended)
+*   [Android Studio](https://developer.android.com/studio) (for Android emulation & build tools)
+*   [Xcode](https://developer.apple.com/xcode/) (macOS only, for iOS simulation)
 
 ### Installation
 
-1. Clone the repository.
-2. Install dependencies:
+1. Clone the repository to your local machine:
+   ```bash
+   git clone <repository-url>
+   cd Planner
+   ```
+
+2. Install the project dependencies:
    ```bash
    npm install
    ```
 
-### Running Locally
+### Running the App Locally
 
-To start the Expo development bundler:
+To launch the Metro bundler:
 ```bash
 npm run start
 ```
-From here, you can run the app on an Android emulator/device by pressing `a`, or iOS simulator by pressing `i`.
+
+Use the console shortcuts to open the app on your environment:
+*   Press **`a`** to open on an Android emulator or connected device.
+*   Press **`i`** to open on the iOS simulator (macOS only).
+*   Press **`r`** to force reload the Metro bundler.
+*   Use `npx expo start --clear` to clear the bundler cache if you encounter resolution issues.
 
 ---
 
-## 📦 Building the Android APK
+## 📦 Production Builds (Android APK)
 
-The Android APK is compiled using Expo Prebuild (CNG - Continuous Native Generation).
+PLAN & LEARN utilizes **Continuous Native Generation (CNG)**. Do not manually commit native `/android` or `/ios` files unless specifically necessary; configure them via `app.json` plugins.
 
-### 1. Generating App Icons
-We generate the required native assets from our base logo file (`assets/new_icon.png`):
-- `assets/icon.png` (Main app icon - 1024x1024)
-- `assets/android-icon-foreground.png` (Adaptive foreground centered at 66% - 512x512)
-- `assets/android-icon-background.png` (Solid white background - 512x512)
-- `assets/android-icon-monochrome.png` (Themed adaptive monochrome icon - 512x512)
-- `assets/favicon.png` (Favicon - 48x48)
-
-### 2. Prebuilding the Native Directories
-Regenerate/clean the `/android` directory using Expo configurations in `app.json`:
+### 1. Prebuilding Native Directories
+Ensure native dependencies are correctly configured and clean directories are generated:
 ```bash
 npx expo prebuild --platform android --clean
 ```
 
-### 3. Compiling the APK
-To build the debug APK:
+### 2. Native Compilation
+To build a local debug APK:
 ```bash
 cd android
-.\gradlew.bat assembleDebug
+./gradlew assembleDebug
 ```
-The output APK is generated at:
+*(On Windows, use `.\gradlew.bat assembleDebug`)*
+
+The generated APK will be available at:
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-## 🤝 Contributing & Testing Environment
+## 📂 Architecture & Directory Structure
 
-We welcome contributions! To set up your testing and development environment:
-
-### 1. Prerequisites & Environment Setup
-- **Node.js**: Ensure you have Node.js (v18+) installed.
-- **Android SDK**: Install [Android Studio](https://developer.android.com/studio) and configure the Android SDK.
-- **Environment Variables**: Set `ANDROID_HOME` to your Android SDK path (e.g., `C:\Users\<YourUsername>\AppData\Local\Android\Sdk` on Windows).
-- **Gradle Local Properties**: If `ANDROID_HOME` is not set globally, create/ensure `android/local.properties` exists with:
-  ```properties
-  sdk.dir=C:/Users/<YourUsername>/AppData/Local/Android/Sdk
-  ```
-
-### 2. Windows Path Length Workaround
-On Windows systems, long paths can trigger compiler errors (`MAX_PATH` 260-character limit) for native libraries like `react-native-vector-icons`.
-- We have configured the C++ build staging directory to be redirected to `C:/tmp/pl-cxx` in [android/app/build.gradle](file:///c:/Users/kanik/Desktop/Me/projects/Planner/android/app/build.gradle). 
-- Ensure that the directory `C:/tmp` exists or can be written to by Gradle.
-
-### 3. Testing Locally
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the Metro bundler:
-   ```bash
-   npm run start
-   ```
-3. Run on a simulator or device:
-   - For Android (running/debugging local native code): `npm run android`
-   - For iOS: `npm run ios`
-   - If you encounter caching issues, restart the bundler with: `npx expo start --clear`
-
-### 4. Code Quality & Formatting
-- **TypeScript**: Validate TypeScript compiler checks:
-  ```bash
-  npx tsc --noEmit
-  ```
-- **Git Workflow**: Do not track generated `/android` or `/ios` directories. Keep native directories clean. Apply changes through `app.json` and config plugins where possible.
+```
+├── app/                  # File-based routing (Expo Router SDK 57)
+│   ├── (drawer)/         # Main navigation layouts (Learning Paths, Settings)
+│   ├── roadmap/          # Roadmap progress flow & interactive node canvas
+│   ├── material/         # Detailed course screens, font zoom menus, & reading engine
+│   ├── onboarding.tsx    # Neobrutalist 3-step profile customizer
+│   └── _layout.tsx       # Global themes, navigation provider, & safe area offsets
+├── assets/               # Brand elements, launcher icons, and splash screens
+├── src/                  # Core source code
+│   ├── components/       # Reusable UI controls (KaTeX webviews, Mermaid canvas, loaders)
+│   ├── store/            # Zustand state stores (MMKV storage engine & node schema migrations)
+│   ├── hooks/            # Custom hooks (Stream managers, keyboard animations, UI logic)
+│   └── services/         # API clients & network endpoints
+├── tailwind.config.js    # Utility styles, spacing tokens, and border variables
+├── app.json              # Central Expo config, permissions, & build plugins
+└── tsconfig.json         # TypeScript compiler configurations
+```
 
 ---
 
-## 📂 Project Structure
+## 🔧 Developer Guide & Troubleshooting
 
-```
-├── app/                  # File-based routing navigation screens (Expo Router)
-│   ├── (drawer)/         # Main drawer navigation screen layouts
-│   ├── roadmap/          # Roadmap screens
-│   ├── material/         # Material/course screens
-│   └── _layout.tsx       # Root entry layout config
-├── assets/               # Branding, splash screens, and icon resources
-├── src/                  # Shared source code
-│   ├── store/            # Zustand state stores (MMKV integration)
-├── tailwind.config.js    # NativeWind styling configurations
-├── app.json              # Expo configuration and plugins manifest
-├── package.json          # Main dependencies & script execution configurations
-└── tsconfig.json         # TypeScript configuration
-```
+### Windows Native Build Support
+Building native packages on Windows can occasionally fail due to file path limitations or environment issues:
+
+1.  **Path Length Limitations (`MAX_PATH` Limit)**:
+    Windows enforces a 260-character path limit. C++ builds (like `react-native-vector-icons` and JSI modules) will fail if nested deeply.
+    *   **Solution**: We redirect CMake build staging to `C:/tmp/pl-cxx` inside [android/app/build.gradle](file:///c:/Users/kanik/Desktop/Me/projects/Planner/android/app/build.gradle). Make sure your build terminal has write permissions for `C:/`.
+
+2.  **SDK Path Resolution (`local.properties`)**:
+    If your `ANDROID_HOME` variable is not globally configured, specify it explicitly inside `android/local.properties`:
+    ```properties
+    sdk.dir=C:/Users/<YourUsername>/AppData/Local/Android/Sdk
+    ```
+
+3.  **Metro Bundler Clearing**:
+    For styling or SVG updates that aren't showing up:
+    ```bash
+    npx expo start -c
+    ```
+
+---
+
+## 🤝 Contribution Guidelines
+
+*   **TypeScript Integrity**: Ensure all component props and store state are strictly typed. Validate before committing:
+    ```bash
+    npx tsc --noEmit
+    ```
+*   **Aesthetics Priority**: Maintain neobrutalist styling norms. Use thick borders (`border-3` or `border-4`), heavy offset shadow transformations, and Space Grotesk typography.
+*   **Expo Standards**: Refer directly to [Expo v57 Documentation](https://docs.expo.dev/versions/v57.0.0/) for native plugin structures and router hooks.
