@@ -59,12 +59,14 @@ export interface RoadmapStore {
   setModuleStatus: (roadmapId: string, moduleId: string, status: ContentStatus) => void;
   injectModuleContent: (roadmapId: string, moduleId: string, content: ModuleContent) => void;
   updateNodeScrollProgress: (roadmapId: string, nodeId: string, progress: number) => void;
-  theme: 'light' | 'dark';
-  setTheme: (theme: 'light' | 'dark') => void;
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   fontSizeMultiplier: number;
   setFontSizeMultiplier: (multiplier: number) => void;
   hasSeenOnboarding: boolean;
   setHasSeenOnboarding: (seen: boolean) => void;
   audience: 'school_student' | 'university_student' | 'working_professional' | null;
   setAudience: (audience: 'school_student' | 'university_student' | 'working_professional' | null) => void;
+  detailLevel: 'quick' | 'standard' | 'comprehensive';
+  setDetailLevel: (level: 'quick' | 'standard' | 'comprehensive') => void;
 }

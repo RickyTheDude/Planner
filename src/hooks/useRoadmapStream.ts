@@ -100,15 +100,28 @@ export function useRoadmapStream() {
       abortRef.current = controller;
 
       try {
-        const audience = useRoadmapStore.getState().audience;
+        const storeState = useRoadmapStore.getState();
+        const audience = storeState.audience;
+        const detailLevel = storeState.detailLevel;
+
+        let modifiedPrompt = prompt;
+        if (detailLevel === 'quick') {
+          modifiedPrompt += " (Please keep the roadmap concise, around 5 modules).";
+        } else if (detailLevel === 'comprehensive') {
+          modifiedPrompt += " (Please make the roadmap highly detailed and comprehensive, but cap it strictly at a maximum of 20 modules).";
+        }
+
         const response = await fetch(ENDPOINTS.ROADMAP, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: prompt, ...(audience && { audience }) }),
+          body: JSON.stringify({ prompt: modifiedPrompt, detailLevel, ...(audience && { audience }) }),
           signal: controller.signal,
         });
 
         if (!response.ok) {
+          if (response.status >= 500 && response.status <= 599) {
+            throw new Error('Server is currently down or unresponsive. Please try again later.');
+          }
           const errBody = await response.text();
           const errJson = tryParseJSON<{ error?: string }>(errBody);
           throw new Error(errJson?.error ?? `Server error ${response.status}`);
@@ -178,7 +191,10 @@ export function useRoadmapStream() {
         return lastGoodRoadmap;
       } catch (err: any) {
         if (err.name === 'AbortError') return null;
-        const message = err.message ?? 'An unknown error occurred';
+        let message = err.message ?? 'An unknown error occurred';
+        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network request failed')) {
+          message = 'Server is not responsive. Please check your connection or try again later.';
+        }
         setError(message);
         console.error('[useRoadmapStream] generateStructure error:', message);
         return null;
@@ -223,6 +239,9 @@ export function useRoadmapStream() {
         });
 
         if (!response.ok) {
+          if (response.status >= 500 && response.status <= 599) {
+            throw new Error('Server is currently down or unresponsive. Please try again later.');
+          }
           const errBody = await response.text();
           const errJson = tryParseJSON<{ error?: string }>(errBody);
           throw new Error(errJson?.error ?? `Server error ${response.status}`);
@@ -283,13 +302,17 @@ export function useRoadmapStream() {
         }
 
         if (!lastContent) {
+          console.error('[useRoadmapStream] Failed to parse. Accumulated string:', accumulated);
           throw new Error('Failed to parse streamed module content');
         }
 
         return lastContent;
       } catch (err: any) {
         if (err.name === 'AbortError') return null;
-        const message = err.message ?? 'An unknown error occurred';
+        let message = err.message ?? 'An unknown error occurred';
+        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network request failed')) {
+          message = 'Server is not responsive. Please check your connection or try again later.';
+        }
         setError(message);
         setModuleStatus(roadmapId, moduleId, 'idle'); // Reset on failure
         console.error('[useRoadmapStream] generateModuleContent error:', message);

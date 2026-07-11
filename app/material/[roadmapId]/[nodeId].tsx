@@ -27,6 +27,7 @@ import { useRoadmapStore } from "../../../src/store/useRoadmapStore";
 import { useRoadmapStream } from "../../../src/hooks/useRoadmapStream";
 import { SourcesModal } from "../../../src/components/SourcesModal";
 import { MermaidBlock } from "../../../src/components/MermaidBlock";
+import { GraphBlock } from "../../../src/components/GraphBlock";
 import { ModuleLoadingSkeleton } from "../../../src/components/ModuleLoadingSkeleton";
 import { StandingWaveLoader } from "../../../src/components/StandingWaveLoader";
 import { resolveImageUrl } from "../../../src/services/imageService";
@@ -318,7 +319,7 @@ export default function MaterialScreen() {
     const prereqs = node.prerequisites?.length
       ? `Prerequisites: ${node.prerequisites.join(', ')}`
       : 'No prerequisites';
-    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, use proper LaTeX formatting: use $$...$$ for display equations and $...$ for inline math. ALSO IMPORTANT: For Mermaid diagrams, NEVER use colons, parentheses, or special characters inside node labels. Keep node labels as simple alphanumeric text (e.g., use A[Curve f of x] instead of A[Curve: f(x)]) to prevent syntax errors. CRITICAL: When writing code snippets, ALWAYS wrap them in markdown code blocks with the correct language identifier (e.g., \`\`\`python, \`\`\`java) for syntax highlighting.`;
+    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, use proper LaTeX formatting: use $$...$$ for display equations and $...$ for inline math. ALSO IMPORTANT: For Mermaid diagrams, NEVER use colons, parentheses, or special characters inside node labels. Keep node labels as simple alphanumeric text (e.g., use A[Curve f of x] instead of A[Curve: f(x)]) to prevent syntax errors. CRITICAL: To display 2D graphs or functions, use a markdown code block with the language identifier "graph" and write each mathematical expression on a new line (e.g., y = x^2 or sin(x)). For topics related to chemistry, biology, math, or physics, strongly prioritize including graph explanations wherever relevant to improve reader clarity. CRITICAL: For both mermaid and graph blocks, always provide a descriptive title using the syntax \`\`\`graph title="Your Descriptive Title"\`\`\`. CRITICAL: When writing code snippets, ALWAYS wrap them in markdown code blocks with the correct language identifier (e.g., \`\`\`python, \`\`\`java) for syntax highlighting.`;
 
     generateModuleContent(
       roadmapId,
@@ -659,12 +660,27 @@ export default function MaterialScreen() {
       </View>
     ),
     fence: (node, _children, _parent, styles) => {
-      const lang = (node.sourceInfo ?? '').toLowerCase().trim();
+      const sourceInfo = (node.sourceInfo ?? '').trim();
+      const lang = sourceInfo.split(/\s+/)[0].toLowerCase();
+      
+      const titleMatch = sourceInfo.match(/title="([^"]+)"/i);
+      const title = titleMatch ? titleMatch[1] : undefined;
+
       if (lang === 'mermaid') {
         return (
           <MermaidBlock
             key={node.key}
             code={node.content ?? ''}
+            title={title}
+          />
+        );
+      }
+      if (lang === 'graph' || lang === 'plot') {
+        return (
+          <GraphBlock
+            key={node.key}
+            code={node.content ?? ''}
+            title={title}
           />
         );
       }

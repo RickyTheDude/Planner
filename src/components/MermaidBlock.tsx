@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useColorScheme } from 'nativewind';
@@ -85,30 +85,41 @@ export function MermaidBlock({ code, title }: MermaidBlockProps) {
 
   const sanitizedCode = sanitizeMermaidCode(code);
 
-  const html = `
+  const html = useMemo(() => `
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: ${bgColor};
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      align-items: center;
       padding: 16px;
       font-family: -apple-system, sans-serif;
       overflow: hidden;
+      touch-action: none; /* Prevent native scroll */
     }
     #diagram {
       width: 100%;
-      overflow-x: auto;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mermaid {
+      width: 100%;
+      height: 100%;
     }
     .mermaid svg {
-      max-width: 100%;
-      height: auto;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
     }
     #error-box {
       display: none;
@@ -127,12 +138,11 @@ export function MermaidBlock({ code, title }: MermaidBlockProps) {
 </head>
 <body>
   <div id="diagram" class="mermaid">
-${sanitizedCode}
   </div>
   <div id="error-box"></div>
   <script>
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: '${isDark ? 'dark' : 'default'}',
       securityLevel: 'loose',
       themeVariables: {
@@ -144,31 +154,117 @@ ${sanitizedCode}
       },
     });
 
-    // Report height to React Native after render
-    mermaid.run().then(() => {
-      setTimeout(() => {
-        const h = document.getElementById('diagram').scrollHeight + 32;
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', value: h }));
-      }, 300);
-    }).catch((err) => {
-      // Show inline error instead of mermaid bomb
+    let currentPz = null;
+
+    window.updateDiagram = async function(newCode) {
       const errBox = document.getElementById('error-box');
-      errBox.style.display = 'block';
+      const diagramBox = document.getElementById('diagram');
       
-      let msg = err && err.message ? err.message : String(err);
-      // Truncate the huge list of expected tokens that causes massive scroll height
-      msg = msg.split(/Expecting/)[0].trim();
-      
-      errBox.textContent = 'Diagram error: ' + msg;
-      document.getElementById('diagram').style.display = 'none';
-      
-      setTimeout(() => {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', value: errBox.scrollHeight + 32 }));
-      }, 50);
-    });
+      try {
+        errBox.style.display = 'none';
+        diagramBox.style.display = 'flex';
+        
+        if (currentPz) {
+          currentPz.destroy();
+          currentPz = null;
+        }
+
+        const { svg } = await mermaid.render('mermaid-svg', newCode);
+        diagramBox.innerHTML = svg;
+        
+        setTimeout(() => {
+          const svgEl = document.querySelector('.mermaid svg');
+          if (svgEl) {
+            svgEl.style.maxWidth = 'none';
+            svgEl.style.height = '100%';
+            svgEl.style.width = '100%';
+            
+            currentPz = svgPanZoom(svgEl, {
+              zoomEnabled: true,
+              controlIconsEnabled: false,
+              fit: true,
+              center: true,
+              minZoom: 0.5,
+              maxZoom: 10,
+              customEventsHandler: {
+                haltEventListeners: ['touchstart', 'touchend', 'touchmove', 'touchleave', 'touchcancel'],
+                init: function(options) {
+                  var instance = options.instance;
+                  var initialScale = 1;
+                  var pannedX = 0;
+                  var pannedY = 0;
+
+                  this.hammer = new Hammer(options.svgElement, {
+                    inputClass: Hammer.TouchInput
+                  });
+
+                  this.hammer.get('pinch').set({ enable: true });
+
+                  this.hammer.on('doubletap', function(){
+                    instance.resetZoom();
+                    instance.center();
+                  });
+
+                  this.hammer.on('panstart panmove', function(ev){
+                    if (ev.type === 'panstart') {
+                      pannedX = 0;
+                      pannedY = 0;
+                    }
+                    instance.panBy({ x: ev.deltaX - pannedX, y: ev.deltaY - pannedY });
+                    pannedX = ev.deltaX;
+                    pannedY = ev.deltaY;
+                  });
+
+                  this.hammer.on('pinchstart pinchmove', function(ev){
+                    if (ev.type === 'pinchstart') {
+                      initialScale = instance.getZoom();
+                    }
+                    instance.zoomAtPoint(initialScale * ev.scale, { x: ev.center.x, y: ev.center.y });
+                  });
+
+                  options.svgElement.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive: false });
+                },
+                destroy: function(){
+                  this.hammer.destroy();
+                }
+              }
+            });
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', value: 450 }));
+          }
+        }, 100);
+      } catch (err) {
+        let msg = err && err.message ? err.message : String(err);
+        msg = msg.split(/Expecting/)[0].trim();
+        
+        errBox.textContent = 'Diagram error: ' + msg;
+        errBox.style.display = 'block';
+        diagramBox.style.display = 'none';
+        
+        setTimeout(() => {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', value: errBox.scrollHeight + 32 }));
+        }, 50);
+      }
+    };
   </script>
 </body>
-</html>`;
+</html>`, [isDark, bgColor, fgColor, errorBg, errorFg]);
+
+  useEffect(() => {
+    if (webViewRef.current && sanitizedCode) {
+      // Escape backticks, backslashes, and dollar signs for injection
+      const escapedCode = sanitizedCode
+        .replace(/\\\\/g, '\\\\\\\\') // escape backslashes doubly for JS literal
+        .replace(/\`/g, '\\\\`')
+        .replace(/\\$/g, '\\\\$');
+        
+      webViewRef.current.injectJavaScript(`
+        if (window.updateDiagram) {
+          window.updateDiagram(\`${escapedCode}\`);
+        }
+        true;
+      `);
+    }
+  }, [sanitizedCode]);
 
   const onMessage = useCallback((event: any) => {
     try {
@@ -182,8 +278,6 @@ ${sanitizedCode}
       }
     } catch {}
   }, []);
-
-  if (hasError) return null;
 
   return (
     <View
@@ -223,8 +317,8 @@ ${sanitizedCode}
         ref={webViewRef}
         source={{ html }}
         style={{ height, backgroundColor: bgColor }}
-        scrollEnabled={false}
-        nestedScrollEnabled={false}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
         onMessage={onMessage}
         originWhitelist={['*']}
         javaScriptEnabled

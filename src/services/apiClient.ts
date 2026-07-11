@@ -1,6 +1,6 @@
 // ─── API Client: base URL and typed request helpers ───
 
-export const API_BASE_URL = 'https://cognimosity-backend.vercel.app';
+export const API_BASE_URL = 'https://cognimosity-backend.rickythedude420.workers.dev';
 
 export const ENDPOINTS = {
   ROADMAP: `${API_BASE_URL}/api/roadmap`,
