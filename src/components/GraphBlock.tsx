@@ -74,9 +74,8 @@ export function GraphBlock({ code, title }: GraphBlockProps) {
 <body>
   <div id="diagram"></div>
   <script>
-    window.updateDiagram = async function(dataStr) {
+    window.updateDiagram = async function(data) {
       try {
-        const data = JSON.parse(dataStr);
         const width = window.innerWidth - 32;
         const height = window.innerHeight - 32;
         
@@ -93,24 +92,17 @@ export function GraphBlock({ code, title }: GraphBlockProps) {
         console.error(err);
       }
     };
+
+    window.onload = function() {
+      if (window.updateDiagram) {
+        window.updateDiagram(${JSON.stringify(graphData)});
+      }
+    };
   </script>
 </body>
-</html>`, [bgColor, fgColor, gridColor]);
+</html>`, [bgColor, fgColor, gridColor, graphData]);
 
-  useEffect(() => {
-    if (webViewRef.current && graphData.length > 0) {
-      const dataStr = JSON.stringify(graphData);
-      // Wait a slight moment for webview to load before injecting
-      setTimeout(() => {
-        webViewRef.current?.injectJavaScript(`
-          if (window.updateDiagram) {
-            window.updateDiagram('${dataStr}');
-          }
-          true;
-        `);
-      }, 100);
-    }
-  }, [graphData]);
+
 
   const onMessage = useCallback((event: any) => {
     try {

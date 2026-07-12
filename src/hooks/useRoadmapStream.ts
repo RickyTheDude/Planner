@@ -90,7 +90,7 @@ export function useRoadmapStream() {
 
   // ─── Phase 1: Generate roadmap structure ───
   const generateStructure = useCallback(
-    async (prompt: string): Promise<Roadmap | null> => {
+    async (prompt: string, bypassDuplicateCheck: boolean = false, isSearch: boolean = false): Promise<Roadmap | { existing: Roadmap } | null> => {
       setIsStreaming(true);
       setError(null);
 
@@ -99,22 +99,23 @@ export function useRoadmapStream() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const checkDuplicate = (roadmap: Roadmap) => {
+        if (bypassDuplicateCheck) return null;
+        const roadmaps = useRoadmapStore.getState().roadmaps;
+        return roadmaps.find(r => r.topic.toLowerCase() === roadmap.topic.toLowerCase()) || null;
+      };
+
       try {
         const storeState = useRoadmapStore.getState();
         const audience = storeState.audience;
         const detailLevel = storeState.detailLevel;
 
-        let modifiedPrompt = prompt;
-        if (detailLevel === 'quick') {
-          modifiedPrompt += " (Please keep the roadmap concise, around 5 modules).";
-        } else if (detailLevel === 'comprehensive') {
-          modifiedPrompt += " (Please make the roadmap highly detailed and comprehensive, but cap it strictly at a maximum of 20 modules).";
-        }
+        const modifiedPrompt = prompt;
 
         const response = await fetch(ENDPOINTS.ROADMAP, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: modifiedPrompt, detailLevel, ...(audience && { audience }) }),
+          body: JSON.stringify({ prompt: modifiedPrompt, detailLevel, isSearch, ...(audience && { audience }) }),
           signal: controller.signal,
         });
 
@@ -133,6 +134,12 @@ export function useRoadmapStream() {
           // ─── Cache Hit: immediate JSON parse ───
           const payload = (await response.json()) as RoadmapApiResponse;
           const roadmap = toRoadmap(payload);
+          
+          const existing = checkDuplicate(roadmap);
+          if (existing) {
+            return { existing };
+          }
+          
           addRoadmap(roadmap);
           return roadmap;
         }
@@ -144,6 +151,12 @@ export function useRoadmapStream() {
           const parsed = tryParseJSON<RoadmapApiResponse>(text);
           if (!parsed) throw new Error('Failed to parse streamed roadmap response');
           const roadmap = toRoadmap(parsed);
+          
+          const existing = checkDuplicate(roadmap);
+          if (existing) {
+            return { existing };
+          }
+          
           addRoadmap(roadmap);
           return roadmap;
         }
@@ -152,6 +165,7 @@ export function useRoadmapStream() {
         const decoder = new TextDecoder();
         let accumulated = '';
         let lastGoodRoadmap: Roadmap | null = null;
+        let checkedDuplicate = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -161,18 +175,30 @@ export function useRoadmapStream() {
 
           // Try to parse the accumulated text as complete JSON
           const parsed = tryParseJSON<RoadmapApiResponse>(accumulated);
+          let currentParsedRoadmap: Roadmap | null = null;
+          
           if (parsed) {
-            lastGoodRoadmap = toRoadmap(parsed);
-            addRoadmap(lastGoodRoadmap);
+            currentParsedRoadmap = toRoadmap(parsed);
           } else {
             // Attempt partial parse: extract nodes that exist so far
-            // The Vercel AI SDK streams partial objects, so we try parsing
-            // as much as possible to animate nodes into view
             const partialRoadmap = attemptPartialParse(accumulated);
             if (partialRoadmap && partialRoadmap.nodes.length > (lastGoodRoadmap?.nodes.length ?? 0)) {
-              lastGoodRoadmap = partialRoadmap;
-              addRoadmap(lastGoodRoadmap);
+              currentParsedRoadmap = partialRoadmap;
             }
+          }
+          
+          if (currentParsedRoadmap) {
+            // Only check for duplicates once we have the first valid partial parse (which contains topic/id)
+            if (!checkedDuplicate) {
+              const existing = checkDuplicate(currentParsedRoadmap);
+              if (existing) {
+                // Return immediately without adding to store. The finally block will handle cleanup.
+                return { existing };
+              }
+              checkedDuplicate = true;
+            }
+            lastGoodRoadmap = currentParsedRoadmap;
+            addRoadmap(lastGoodRoadmap);
           }
         }
 
@@ -253,7 +279,7 @@ export function useRoadmapStream() {
           // ─── Cache Hit ───
           const payload = (await response.json()) as ModuleApiResponse;
           const content = payload.data ?? payload;
-          injectModuleContent(roadmapId, moduleId, content as ModuleContent);
+          injectModuleContent(roadmapId, moduleId, content as ModuleContent, 'complete');
           return content as ModuleContent;
         }
 
@@ -263,7 +289,7 @@ export function useRoadmapStream() {
           const parsed = tryParseJSON<ModuleApiResponse>(text);
           if (!parsed) throw new Error('Failed to parse streamed module response');
           const content = parsed.data ?? parsed;
-          injectModuleContent(roadmapId, moduleId, content as ModuleContent);
+          injectModuleContent(roadmapId, moduleId, content as ModuleContent, 'complete');
           return content as ModuleContent;
         }
 
@@ -298,7 +324,9 @@ export function useRoadmapStream() {
         const finalParsed = tryParseJSON<ModuleApiResponse>(accumulated);
         if (finalParsed) {
           lastContent = (finalParsed.data ?? finalParsed) as ModuleContent;
-          injectModuleContent(roadmapId, moduleId, lastContent);
+          injectModuleContent(roadmapId, moduleId, lastContent, 'complete');
+        } else if (lastContent) {
+          injectModuleContent(roadmapId, moduleId, lastContent, 'complete');
         }
 
         if (!lastContent) {

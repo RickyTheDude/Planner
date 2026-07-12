@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, useWindowDimensions } from "react-na
 import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Circle } from "react-native-svg";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
@@ -74,6 +74,7 @@ interface TrashZone {
 interface SortableCardProps {
   roadmap: any;
   id: string;
+  initialOrder: number;
   positions: SharedValue<Record<string, number>>;
   draggedAbsoluteX: SharedValue<number>;
   draggedAbsoluteY: SharedValue<number>;
@@ -89,6 +90,7 @@ interface SortableCardProps {
 function SortableCard({
   roadmap,
   id,
+  initialOrder,
   positions,
   draggedAbsoluteX,
   draggedAbsoluteY,
@@ -103,7 +105,7 @@ function SortableCard({
   const { colorScheme } = useColorScheme();
   const pct = getCompletionPercent(roadmap?.nodes);
 
-  const initialY = positions.value[id] * ITEM_HEIGHT;
+  const initialY = initialOrder * ITEM_HEIGHT;
   const translateY = useSharedValue(initialY);
   const isDragging = useSharedValue(false);
   const startIndex = useSharedValue(0);
@@ -115,7 +117,7 @@ function SortableCard({
   useAnimatedReaction(
     () => positions.value[id],
     (newOrder, prevOrder) => {
-      if (newOrder !== prevOrder && !isDragging.value) {
+      if (newOrder !== undefined && newOrder !== prevOrder && !isDragging.value) {
         translateY.value = withTiming(newOrder * ITEM_HEIGHT, { duration: 150 });
       }
     }
@@ -334,25 +336,52 @@ export default function HistoryScreen() {
         className="flex-1"
         scrollEnabled={activeDragId === null}
         contentContainerStyle={{
-          height: roadmaps.length * ITEM_HEIGHT + 40,
+          height: roadmaps.length > 0 ? roadmaps.length * ITEM_HEIGHT + 40 : undefined,
+          flexGrow: 1,
           paddingTop: 24,
           paddingBottom: 40,
         }}
         showsVerticalScrollIndicator={false}
       >
         {roadmaps.length === 0 && (
-          <Text className="mt-12 text-center text-sm font-mono text-neoFg/50 dark:text-neoFgDark/50">
-            NO ROADMAPS YET.{"\n"}HEAD HOME TO CREATE ONE!
-          </Text>
+          <View className="mt-16 mx-6 items-center">
+            <View className="w-24 h-24 mb-6 rounded-3xl bg-neoFg dark:bg-neoFgDark">
+              <View className="w-24 h-24 rounded-3xl border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark items-center justify-center -translate-x-1 -translate-y-1">
+                <Svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#ffffff" : "#0f172a"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <Circle cx="11" cy="11" r="8" />
+                  <Path d="m21 21-4.3-4.3" />
+                </Svg>
+              </View>
+            </View>
+            
+            <Text className="text-2xl font-space-bold text-neoFg dark:text-neoFgDark mb-2 text-center">
+              No Learning Paths
+            </Text>
+            <Text className="text-sm font-space-medium text-neoFg/60 dark:text-neoFgDark/60 text-center mb-8 px-2 leading-relaxed">
+              Your generated roadmaps will appear here. Search for any topic to build your first path.
+            </Text>
+            
+            <View className="rounded-2xl bg-neoFg dark:bg-neoFgDark w-full max-w-[280px]">
+              <Pressable
+                onPress={() => router.push("/")}
+                className="rounded-2xl border-3 border-neoFg dark:border-neoFgDark bg-[#C4B5FD] dark:bg-[#A78BFA] py-4 items-center justify-center -translate-x-1.5 -translate-y-1.5 active:translate-x-0 active:translate-y-0"
+              >
+                <Text className="font-space-bold text-base text-neoFg dark:text-neoFgDark uppercase tracking-wider">
+                  Start Exploring
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         )}
 
         <View style={{ position: "relative", flex: 1 }}>
-          {roadmaps.map((roadmap) => {
+          {roadmaps.map((roadmap, index) => {
             if (!roadmap || !roadmap.id) return null;
             return (
               <SortableCard
                 key={roadmap.id}
                 id={roadmap.id}
+                initialOrder={index}
                 roadmap={roadmap}
                 positions={positions}
                 draggedAbsoluteX={draggedAbsoluteX}

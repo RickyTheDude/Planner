@@ -514,7 +514,7 @@ export default function HomeScreen() {
     handleSubmitTopic(topic);
   };
 
-  const handleSubmitTopic = async (topicQuery: string, bypassCheck = false) => {
+  const handleSubmitTopic = async (topicQuery: string, bypassCheck = false, isSearch = false) => {
     const trimmed = topicQuery.trim();
     if (!trimmed || isLoading) return;
 
@@ -552,8 +552,36 @@ export default function HomeScreen() {
 
     setPrompt(trimmed);
     try {
-      const roadmap = await generateStructure(trimmed);
-      if (roadmap) {
+      const result = await generateStructure(trimmed, bypassCheck, isSearch);
+      
+      if (result && 'existing' in result) {
+        setPrompt("");
+        Alert.alert(
+          "Resume Course?",
+          `You have already started "${result.existing.topic}". Would you like to resume your progress or reset and start over?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Reset Progress",
+              style: "destructive",
+              onPress: () => {
+                useRoadmapStore.getState().deleteRoadmap(result.existing.id);
+                handleSubmitTopic(trimmed, true);
+              },
+            },
+            {
+              text: "Resume",
+              onPress: () => {
+                router.push(`/roadmap/${result.existing.id}`);
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      const roadmap = result;
+      if (roadmap && !('existing' in roadmap)) {
         setPrompt("");
         router.push(`/roadmap/${roadmap.id}`);
       } else if (streamError) {
@@ -585,53 +613,58 @@ export default function HomeScreen() {
         backgroundColor: isDark ? "#000000" : "#ffffff",
       }}
     >
+      {/* ─── Header Bar ─── */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingTop: insets.top + 12,
+          paddingHorizontal: 20,
+          paddingBottom: 16,
+          backgroundColor: isDark ? "#000000" : "#ffffff",
+          zIndex: 10,
+        }}
+      >
+        <Image
+          source={
+            isDark
+              ? require("../../assets/new_icon_inverted.png")
+              : require("../../assets/new_icon.png")
+          }
+          style={{ width: 30, height: 30 }}
+          resizeMode="contain"
+        />
+        <View
+          style={{
+            width: 1.5,
+            height: 24,
+            backgroundColor: isDark
+              ? "rgba(232,232,232,0.25)"
+              : "rgba(15,23,42,0.25)",
+            marginHorizontal: 12,
+          }}
+        />
+        <Text
+          style={{
+            fontFamily: "SpaceGrotesk_700Bold",
+            fontSize: 20,
+            color: isDark ? "#e8e8e8" : "#0f172a",
+            letterSpacing: -0.5,
+          }}
+        >
+          Plan & Learn
+        </Text>
+      </View>
+
       <ScrollView
         contentContainerStyle={{
+          paddingTop: 8,
           paddingBottom: 40,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ─── Header Bar ─── */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingTop: insets.top + 12,
-            paddingHorizontal: 20,
-            paddingBottom: 20,
-          }}
-        >
-          <Image
-            source={
-              isDark
-                ? require("../../assets/new_icon_inverted.png")
-                : require("../../assets/new_icon.png")
-            }
-            style={{ width: 30, height: 30 }}
-            resizeMode="contain"
-          />
-          <View
-            style={{
-              width: 1.5,
-              height: 24,
-              backgroundColor: isDark
-                ? "rgba(232,232,232,0.25)"
-                : "rgba(15,23,42,0.25)",
-              marginHorizontal: 12,
-            }}
-          />
-          <Text
-            style={{
-              fontFamily: "SpaceGrotesk_700Bold",
-              fontSize: 20,
-              color: isDark ? "#e8e8e8" : "#0f172a",
-              letterSpacing: -0.5,
-            }}
-          >
-            Plan & Learn
-          </Text>
-        </View>
+
 
         {/* ─── Search Tile ─── */}
         <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
@@ -702,7 +735,7 @@ export default function HomeScreen() {
                   ref={inputRef}
                   value={prompt}
                   onChangeText={setPrompt}
-                  onSubmitEditing={() => handleSubmitTopic(prompt)}
+                  onSubmitEditing={() => handleSubmitTopic(prompt, false, true)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => {
                     setTimeout(() => setIsFocused(false), 150);
@@ -730,7 +763,7 @@ export default function HomeScreen() {
                 {/* Submit button */}
                 {prompt.trim() ? (
                   <Pressable
-                    onPress={() => handleSubmitTopic(prompt)}
+                    onPress={() => handleSubmitTopic(prompt, false, true)}
                     disabled={isLoading}
                     style={{
                       width: 36,

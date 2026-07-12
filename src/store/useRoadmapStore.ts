@@ -26,7 +26,7 @@ function isLegacyNode(node: any): node is LegacyNode {
 }
 
 // ─── Read and apply initial theme synchronously to prevent flash ───
-const getInitialTheme = (): "light" | "dark" | "system" => {
+const getInitialTheme = (): "light" | "dark" => {
   try {
     const raw = mmkvInstance.getString("roadmap-storage");
     if (raw) {
@@ -38,7 +38,7 @@ const getInitialTheme = (): "light" | "dark" | "system" => {
   } catch (err) {
     console.error("Failed to read theme from MMKV", err);
   }
-  return "system";
+  return "light";
 };
 
 const initialTheme = getInitialTheme();
@@ -140,7 +140,7 @@ export const useRoadmapStore = create<RoadmapStore>()(
         }));
       },
 
-      injectModuleContent: (roadmapId, moduleId, content) => {
+      injectModuleContent: (roadmapId, moduleId, content, status) => {
         set((state) => ({
           roadmaps: state.roadmaps.map((r) => {
             if (r.id !== roadmapId) return r;
@@ -148,7 +148,7 @@ export const useRoadmapStore = create<RoadmapStore>()(
               ...r,
               nodes: r.nodes.map((n) =>
                 n.id === moduleId
-                  ? { ...n, contentStatus: 'complete' as const, content }
+                  ? { ...n, contentStatus: status ?? n.contentStatus, content }
                   : n
               ),
             };

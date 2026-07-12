@@ -73,9 +73,21 @@ function sanitizeMermaidCode(raw: string): string {
 export function MermaidBlock({ code, title }: MermaidBlockProps) {
   const [height, setHeight] = useState(200);
   const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const loadedRef = useRef(false);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!loadedRef.current && retryCount < 2) {
+        setRetryCount((c) => c + 1);
+        webViewRef.current?.reload();
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [retryCount]);
 
   const bgColor = isDark ? '#1e293b' : '#ffffff';
   const fgColor = isDark ? '#f8fafc' : '#0f172a';
@@ -245,34 +257,28 @@ export function MermaidBlock({ code, title }: MermaidBlockProps) {
         }, 50);
       }
     };
+
+    // Auto-run: avoid window.onload as it's unreliable in Android WebView with source={{ html }}
+    setTimeout(function() {
+      if (window.updateDiagram) {
+        window.updateDiagram(${JSON.stringify(sanitizedCode || '')});
+      }
+    }, 50);
   </script>
 </body>
-</html>`, [isDark, bgColor, fgColor, errorBg, errorFg]);
+</html>`, [isDark, bgColor, fgColor, errorBg, errorFg, sanitizedCode]);
 
-  useEffect(() => {
-    if (webViewRef.current && sanitizedCode) {
-      // Escape backticks, backslashes, and dollar signs for injection
-      const escapedCode = sanitizedCode
-        .replace(/\\\\/g, '\\\\\\\\') // escape backslashes doubly for JS literal
-        .replace(/\`/g, '\\\\`')
-        .replace(/\\$/g, '\\\\$');
-        
-      webViewRef.current.injectJavaScript(`
-        if (window.updateDiagram) {
-          window.updateDiagram(\`${escapedCode}\`);
-        }
-        true;
-      `);
-    }
-  }, [sanitizedCode]);
+
 
   const onMessage = useCallback((event: any) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === 'height' && typeof msg.value === 'number') {
+        loadedRef.current = true;
         setHeight(Math.max(msg.value, 100));
         setHasError(false);
       } else if (msg.type === 'error' && typeof msg.value === 'number') {
+        loadedRef.current = true;
         setHeight(Math.max(msg.value, 80));
         setHasError(true);
       }
@@ -314,9 +320,10 @@ export function MermaidBlock({ code, title }: MermaidBlockProps) {
         </View>
       )}
       <WebView
+        key={retryCount}
         ref={webViewRef}
         source={{ html }}
-        style={{ height, backgroundColor: bgColor }}
+        style={{ height, backgroundColor: bgColor, opacity: 0.99 }}
         scrollEnabled={true}
         nestedScrollEnabled={true}
         onMessage={onMessage}

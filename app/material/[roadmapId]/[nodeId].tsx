@@ -450,7 +450,7 @@ export default function MaterialScreen() {
   }
 
   // ─── Derived state ───
-  const isContentLoading = node.contentStatus === 'idle' || node.contentStatus === 'loading';
+  const isContentLoading = node.contentStatus === 'loading' || (node.contentStatus === 'idle' && !streamError);
   const hasContent = node.contentStatus === 'complete' && !!node.content;
   const content = node.content;
 
@@ -777,30 +777,30 @@ export default function MaterialScreen() {
               <StandingWaveLoader width={screenWidth} height={24} />
             </View>
             <ModuleLoadingSkeleton />
-
-            {streamError && (
-              <View className="mx-5 mt-4 p-4 rounded-xl border-3 border-red-500 bg-red-500/10">
-                <Text className="text-sm font-space-bold text-red-500 uppercase mb-1">
-                  Generation Failed
-                </Text>
-                <Text className="text-xs font-space text-neoFg/70 dark:text-neoFgDark/70">
-                  {streamError}
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    hasTriggeredFetch.current = false;
-                    // Reset to idle to re-trigger fetch
-                    useRoadmapStore.getState().setModuleStatus(roadmapId!, nodeId!, 'idle');
-                  }}
-                  className="mt-3 self-start rounded-lg border-2 border-neoFg dark:border-neoFgDark bg-neoYellow dark:bg-neoYellowDark px-4 py-2"
-                >
-                  <Text className="text-xs font-space-bold uppercase text-neoFg dark:text-neoFgDark">
-                    Retry
-                  </Text>
-                </Pressable>
-              </View>
-            )}
           </ScrollView>
+        ) : streamError ? (
+          // ─── Error State ───
+          <View className="flex-1 items-center justify-center p-6">
+            <View className="w-full rounded-xl border-4 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark p-6 shadow-neo-sm dark:shadow-neoDark-sm">
+              <Text className="text-xl font-space-bold text-[#b91c1c] dark:text-[#fca5a5] uppercase mb-2">
+                Generation Failed
+              </Text>
+              <Text className="text-sm font-space text-neoFg/70 dark:text-neoFgDark/70 mb-4">
+                {streamError}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  hasTriggeredFetch.current = false;
+                  useRoadmapStore.getState().setModuleStatus(roadmapId!, nodeId!, 'idle');
+                }}
+                className="rounded-lg border-2 border-neoFg dark:border-neoFgDark bg-neoYellow dark:bg-neoYellowDark px-4 py-3 items-center"
+              >
+                <Text className="text-sm font-space-bold uppercase text-neoFg dark:text-neoFgDark">
+                  Retry
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         ) : (
           // ─── Content Loaded ───
           <View className="flex-1">

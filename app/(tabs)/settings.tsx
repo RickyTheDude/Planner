@@ -28,7 +28,7 @@ const MoonIcon = ({ color }: { color: string }) => (
 export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
-  const theme = useRoadmapStore((s) => s.theme ?? "system");
+  const theme = useRoadmapStore((s) => s.theme ?? "light");
   const setTheme = useRoadmapStore((s) => s.setTheme);
   const detailLevel = useRoadmapStore((s) => s.detailLevel);
   const setDetailLevel = useRoadmapStore((s) => s.setDetailLevel);
@@ -37,9 +37,8 @@ export default function SettingsScreen() {
   const fgColor = isDark ? "#f8fafc" : "#0f172a";
 
   const renderThemeSegment = () => {
-    const options: { label: string; value: "light" | "system" | "dark" }[] = [
+    const options: { label: string; value: "light" | "dark" }[] = [
       { label: "Light", value: "light" },
-      { label: "System", value: "system" },
       { label: "Dark", value: "dark" }
     ];
 
@@ -57,11 +56,7 @@ export default function SettingsScreen() {
                   key={opt.value}
                   onPress={() => {
                     setTheme(opt.value);
-                    if (opt.value === "system") {
-                      setColorScheme("system");
-                    } else {
-                      setColorScheme(opt.value);
-                    }
+                    setColorScheme(opt.value);
                   }}
                   className={`flex-1 items-center justify-center py-3 rounded-lg mx-0.5 border-2 ${
                     isSelected ? 'bg-neoYellow dark:bg-neoYellowDark border-neoFg dark:border-neoFgDark' : 'border-transparent'
@@ -122,6 +117,26 @@ export default function SettingsScreen() {
     );
   };
 
+  // TODO: Purge this block when satisfied with onboarding
+  const renderDebugBlock = () => {
+    return (
+      <View className="mb-8">
+        <Text className="text-sm font-space-bold uppercase tracking-wider text-red-500 mb-4">
+          Debug Options
+        </Text>
+        <Pressable
+          onPress={() => {
+            useRoadmapStore.getState().setHasSeenOnboarding(false);
+            require('expo-router').router.replace("/onboarding");
+          }}
+          className="rounded-xl border-2 border-red-500 bg-red-500/10 p-4"
+        >
+          <Text className="text-red-500 font-space-bold text-center">Reset & Test Onboarding</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
     <View style={{ flex: 1, paddingTop: insets.top }} className="bg-neoBg dark:bg-neoBgDark">
       <View className="pt-3 px-5 pb-5 flex-row items-center">
@@ -133,6 +148,7 @@ export default function SettingsScreen() {
       <View style={{ flex: 1, padding: 20 }}>
         {renderThemeSegment()}
         {renderDetailBlock()}
+        {renderDebugBlock()}
       </View>
     </View>
   );

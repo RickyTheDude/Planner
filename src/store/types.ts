@@ -57,10 +57,10 @@ export interface RoadmapStore {
   getPrevNodeId: (roadmapId: string, currentNodeId: string) => string | null;
   setRoadmaps: (roadmaps: Roadmap[]) => void;
   setModuleStatus: (roadmapId: string, moduleId: string, status: ContentStatus) => void;
-  injectModuleContent: (roadmapId: string, moduleId: string, content: ModuleContent) => void;
+  injectModuleContent: (roadmapId: string, moduleId: string, content: ModuleContent, status?: ContentStatus) => void;
   updateNodeScrollProgress: (roadmapId: string, nodeId: string, progress: number) => void;
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
   fontSizeMultiplier: number;
   setFontSizeMultiplier: (multiplier: number) => void;
   hasSeenOnboarding: boolean;
