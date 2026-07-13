@@ -120,15 +120,6 @@ function splitIntoMathSegments(text: string): ContentSegment[] {
   return segments.length > 0 ? segments : [{ type: 'markdown', content: stripInlineMath(text) }];
 }
 
-const triggerCompletionHaptics = () => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-  setTimeout(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setTimeout(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, 90); // 90ms delay for distinct but rapid feel
-  }, 90);
-};
 
 export default function MaterialScreen() {
   const { roadmapId, nodeId } = useLocalSearchParams<{
@@ -660,7 +651,7 @@ export default function MaterialScreen() {
       </View>
     ),
     fence: (node, _children, _parent, styles) => {
-      const sourceInfo = (node.sourceInfo ?? '').trim();
+      const sourceInfo = String(node.sourceInfo ?? '').trim();
       const lang = sourceInfo.split(/\s+/)[0].toLowerCase();
       
       const titleMatch = sourceInfo.match(/title="([^"]+)"/i);

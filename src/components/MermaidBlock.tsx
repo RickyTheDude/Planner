@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+﻿import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useColorScheme } from 'nativewind';
@@ -21,23 +21,23 @@ function sanitizeMermaidCode(raw: string): string {
       .replace(/\\\\/g, '\\')
       .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '$1/$2')
       .replace(/\\text\{([^}]*)\}/g, '$1')
-      .replace(/\\cdot/g, '·')
-      .replace(/\\times/g, '×')
-      .replace(/\\leq/g, '≤')
-      .replace(/\\geq/g, '≥')
-      .replace(/\\neq/g, '≠')
-      .replace(/\\approx/g, '≈')
-      .replace(/\\infty/g, '∞')
-      .replace(/\\Delta/g, 'Δ')
-      .replace(/\\alpha/g, 'α')
-      .replace(/\\beta/g, 'β')
-      .replace(/\\theta/g, 'θ')
-      .replace(/\\pi/g, 'π')
-      .replace(/\\mu/g, 'μ')
-      .replace(/\\sigma/g, 'σ')
-      .replace(/\\lambda/g, 'λ');
+      .replace(/\\cdot/g, 'Â·')
+      .replace(/\\times/g, 'Ã—')
+      .replace(/\\leq/g, 'â‰¤')
+      .replace(/\\geq/g, 'â‰¥')
+      .replace(/\\neq/g, 'â‰ ')
+      .replace(/\\approx/g, 'â‰ˆ')
+      .replace(/\\infty/g, 'âˆž')
+      .replace(/\\Delta/g, 'Î”')
+      .replace(/\\alpha/g, 'Î±')
+      .replace(/\\beta/g, 'Î²')
+      .replace(/\\theta/g, 'Î¸')
+      .replace(/\\pi/g, 'Ï€')
+      .replace(/\\mu/g, 'Î¼')
+      .replace(/\\sigma/g, 'Ïƒ')
+      .replace(/\\lambda/g, 'Î»');
 
-    // Skip directive lines (e.g. "%%{init: ...}%%") — leave them as-is
+    // Skip directive lines (e.g. "%%{init: ...}%%") â€” leave them as-is
     if (l.trim().startsWith('%%')) return l;
 
     // Fix nested quotes inside explicit mermaid string labels
@@ -90,8 +90,8 @@ export function MermaidBlock({ code, title }: MermaidBlockProps) {
   }, [retryCount]);
 
   const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const fgColor = isDark ? '#f8fafc' : '#0f172a';
-  const borderColor = isDark ? '#f8fafc' : '#0f172a';
+  const fgColor = isDark ? '#ffffff' : '#0f172a';
+  const borderColor = isDark ? '#ffffff' : '#0f172a';
   const errorBg = isDark ? '#2d1515' : '#fff1f1';
   const errorFg = isDark ? '#fca5a5' : '#b91c1c';
 

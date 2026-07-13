@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   View,
   Text,
@@ -53,9 +53,9 @@ export function SourcesModal({ visible, onClose, sources }: SourcesModalProps) {
                 </Text>
               </View>
 
-              {/* Top-right close cross "×" */}
+              {/* Top-right close cross "Ã—" */}
               <Text className="font-space-bold text-2xl text-neoFg/30 dark:text-neoFgDark/30 absolute top-0 right-1">
-                ×
+                x
               </Text>
             </Pressable>
 

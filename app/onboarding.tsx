@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
@@ -42,8 +42,8 @@ const TypewriterText = ({ text, className, typingSpeed = 80, delay = 0 }: { text
   const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    let intervalId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let intervalId: ReturnType<typeof setInterval>;
 
     timeoutId = setTimeout(() => {
       let i = 0;
@@ -293,7 +293,7 @@ export default function OnboardingScreen() {
               <Text className="text-xl font-space-bold uppercase text-neoFg dark:text-neoFgDark mr-2">
                 {step === 2 ? "Start Learning" : "Next"}
               </Text>
-              <ArrowRightIcon color={isDark ? "#e8e8e8" : "#111111"} />
+              <ArrowRightIcon color={isDark ? "#ffffff" : "#111111"} />
             </Pressable>
           </View>
         </Animated.View>

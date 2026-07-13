@@ -10,32 +10,54 @@ An advanced, AI-powered educational roadmap and curriculum planning application 
 
 ---
 
-## Core Features
+## 🎯 Intent & Motivation
 
-*   **🧠 Intelligent Two-Phase Generation & Streaming**
-    *   **Phase 1 (Structure)**: Generates complete, custom step-by-step module maps instantly from any learning topic.
-    *   **Phase 2 (Lazy Content)**: Generates highly comprehensive module content (reading material, LaTeX math, diagrams, citations) on-demand as you progress.
-    *   **Live Stream Parsing**: In-flight partial JSON repair algorithms automatically rebuild chunked streams to display nodes and text incrementally.
-*   **🎓 Audience-Aware Personalization**
-    *   Features a 3-step tactile onboarding workflow that adjusts complexity, tone, and practical application parameters dynamically across three levels:
-        *   **School Student**: Simplified analogies, basic conceptual overviews, and low jargon.
-        *   **University Student**: Technical depth, coding examples, and mathematical foundations.
-        *   **Working Professional**: Architectural scaling, production-grade patterns, and systems engineering.
-*   **Textbook-Grade STEM Rendering**
-    *   **KaTeX Math Expressions**: Embedded display-mode mathematical expressions rendering dynamically via custom sandboxed WebViews.
-    *   **Interactive Mermaid Diagrams**: Dynamic SVG rendering with zoom, pan, and responsive auto-height to visualize complex workflows and system flows.
-    *   **Pollinations AI Image Integration**: Dynamic, contextually relevant, lazy-loaded visual aids positioned selectively to complement reading flow.
-*   **High-Performance Offline-First Architecture**
-    *   **MMKV Synced Storage**: Ultra-fast key-value store powered by `react-native-mmkv` with zero-flash synchronous theme initialization.
-    *   **Fail-Safe Node Migrations**: Automated state schema migrations that shield active roadmaps from breaking changes during app upgrades.
-    *   **Precision Viewport Tracking**: Continuously monitors scroll depth to calculate, persist, and display reading progress rings (with a leading-edge indicator dot) around nodes.
-*   **Neobrutalist Aesthetic**
-    *   Bold high-contrast borders, solid offsets, true-black pure dark mode, tactile haptic feedback (using `expo-haptics`), and modern typography via **Space Grotesk**.
-    *   Delightful custom animations like the **Confetti Cannon** on course completion and the **Standing Wave Loader** replacing traditional spinners.
+**Plan & Learn** was born out of frustration with the modern habit of endlessly scrolling through social media and short-form content. Realizing that many others share this struggle, the idea emerged: what if we could redirect that urge into a learning app that is visually pleasing, accessible, and highly structured?
+
+Our motivation is to make learning new things as frictionless as possible. Not everyone wants to learn prompt engineering or wrestle with the nitty-gritty of AI just to study a new topic. Plan & Learn abstracts all of that away—serving as a personalized AI tutor that instantly breaks down any subject into an intuitive, sequential roadmap. Whether you want bite-sized insights or a highly detailed course, the app tailors the content to your chosen depth, making structured learning a delightful alternative to mindless scrolling.
 
 ---
 
-## Getting Started
+## ✨ Comprehensive Features
+
+*   **🧠 Intelligent Two-Phase Generation & Streaming**
+    *   **Phase 1 (Structure)**: Instantly generates a customized, node-based curriculum map from any learning topic.
+    *   **Phase 2 (Lazy Content)**: Generates highly comprehensive module content—including reading material, LaTeX math, diagrams, and citations—on-demand as you dive into each step.
+    *   **Live Stream Parsing**: In-flight partial JSON repair algorithms automatically rebuild chunked streams to display nodes and text incrementally.
+*   **🗺️ Interactive Graph & Diagram Rendering**
+    *   **Curriculum Maps**: A bespoke visual canvas that renders the AI-generated curriculum as an interactive node graph, allowing users to intuitively navigate their learning journey and track progression.
+    *   **Material Flowcharts**: Dynamic Mermaid.js graph rendering embedded directly within course material to visualize complex workflows and system flows with interactive zoom and pan support.
+*   **🎓 Audience-Aware Personalization**
+    *   Features a 3-step tactile onboarding workflow that adjusts complexity, tone, and practical application parameters dynamically across three levels:
+        *   *School Student*: Simplified analogies, basic conceptual overviews, and low jargon.
+        *   *University Student*: Technical depth, coding examples, and mathematical foundations.
+        *   *Working Professional*: Architectural scaling, production-grade patterns, and systems engineering.
+*   **📚 Textbook-Grade STEM Rendering**
+    *   **KaTeX Math Expressions**: Embedded display-mode mathematical expressions rendering dynamically via custom sandboxed WebViews.
+*   **🔗 Source & Citation Tracking**
+    *   In-app sources modal to track AI-generated references, allowing users to verify information and read external literature directly.
+*   **⚡ High-Performance Offline-First Architecture**
+    *   **MMKV Synced Storage**: Ultra-fast key-value store powered by `react-native-mmkv` with zero-flash synchronous theme initialization.
+    *   **Fail-Safe Node Migrations**: Automated state schema migrations that shield active roadmaps from breaking changes during app upgrades.
+    *   **Precision Viewport Tracking**: Continuously monitors scroll depth to calculate, persist, and display reading progress rings around nodes.
+*   **🎨 Neobrutalist Aesthetic & Accessibility**
+    *   Bold high-contrast borders, solid offsets, true-black pure dark mode, tactile haptic feedback (using `expo-haptics`), and modern typography via **Space Grotesk**.
+    *   Font-zoom and dynamic text sizing for accessible reading.
+    *   Delightful custom animations, including a **Confetti Cannon** on course completion and a **Standing Wave Loader**.
+
+---
+
+## 🛠️ Technical Details
+
+*   **Framework**: Expo SDK 57 (React Native 0.74+) utilizing the new architecture when possible, with `expo-router` for file-based deep linking and navigation.
+*   **Styling**: `NativeWind` v4 (Tailwind CSS for React Native), deeply customized for a Neobrutalist design system incorporating dynamic light/dark modes and raw CSS shadow offsets.
+*   **State Management**: `zustand` combined with `react-native-mmkv` for high-speed, synchronous offline persistence of user settings and massive roadmap JSON objects.
+*   **AI & Data Streaming**: Real-time generative AI pipeline utilizing HTTP streaming. Custom parsing utilities reconstruct malformed/incomplete JSON chunks on the fly to render UI before the request completes.
+*   **WebViews & Advanced Rendering**: Uses `react-native-webview` to securely sandbox and execute DOM-heavy libraries like KaTeX for mathematics and Mermaid.js for node-graph rendering, communicating with the React Native thread via injected JavaScript bridges.
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -106,10 +128,11 @@ The generated APK will be available at:
 │   └── _layout.tsx       # Global themes, navigation provider, & safe area offsets
 ├── assets/               # Brand elements, launcher icons, and splash screens
 ├── src/                  # Core source code
-│   ├── components/       # Reusable UI controls (KaTeX webviews, Mermaid canvas, loaders)
+│   ├── components/       # Reusable UI controls (KaTeX webviews, Mermaid canvas, loaders, Modals)
 │   ├── store/            # Zustand state stores (MMKV storage engine & node schema migrations)
 │   ├── hooks/            # Custom hooks (Stream managers, keyboard animations, UI logic)
-│   └── services/         # API clients & network endpoints
+│   ├── services/         # API clients & network endpoints
+│   └── declarations.d.ts # Module declarations (e.g., resolving untyped dependencies or custom asset imports)
 ├── tailwind.config.js    # Utility styles, spacing tokens, and border variables
 ├── app.json              # Central Expo config, permissions, & build plugins
 └── tsconfig.json         # TypeScript compiler configurations
@@ -124,7 +147,7 @@ Building native packages on Windows can occasionally fail due to file path limit
 
 1.  **Path Length Limitations (`MAX_PATH` Limit)**:
     Windows enforces a 260-character path limit. C++ builds (like `react-native-vector-icons` and JSI modules) will fail if nested deeply.
-    *   **Solution**: We redirect CMake build staging to `C:/tmp/pl-cxx` inside [android/app/build.gradle](file:///c:/Users/kanik/Desktop/Me/projects/Planner/android/app/build.gradle). Make sure your build terminal has write permissions for `C:/`.
+    *   **Solution**: We redirect CMake build staging to `C:/tmp/pl-cxx` inside `android/app/build.gradle`. Make sure your build terminal has write permissions for `C:/`.
 
 2.  **SDK Path Resolution (`local.properties`)**:
     If your `ANDROID_HOME` variable is not globally configured, specify it explicitly inside `android/local.properties`:

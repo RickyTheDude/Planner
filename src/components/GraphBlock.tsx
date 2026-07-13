@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+﻿import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useColorScheme } from 'nativewind';
@@ -28,8 +28,8 @@ export function GraphBlock({ code, title }: GraphBlockProps) {
   const webViewRef = useRef<WebView>(null);
 
   const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const fgColor = isDark ? '#f8fafc' : '#0f172a';
-  const borderColor = isDark ? '#f8fafc' : '#0f172a';
+  const fgColor = isDark ? '#ffffff' : '#0f172a';
+  const borderColor = isDark ? '#ffffff' : '#0f172a';
   const gridColor = isDark ? '#334155' : '#e2e8f0';
   
   const graphData = useMemo(() => parseGraphCode(code), [code]);

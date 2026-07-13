@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { View, Text } from 'react-native';
@@ -8,7 +8,7 @@ export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const bgColor = isDark ? '#000000' : '#ffffff';
-  const fgColor = isDark ? '#e8e8e8' : '#111111';
+  const fgColor = isDark ? '#ffffff' : '#111111';
   const inactiveColor = isDark ? 'rgba(232, 232, 232, 0.4)' : 'rgba(17, 17, 17, 0.4)';
   const insets = useSafeAreaInsets();
 

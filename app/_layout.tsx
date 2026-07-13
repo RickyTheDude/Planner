@@ -1,4 +1,4 @@
-// @ts-ignore
+﻿// @ts-ignore
 import "../global.css";
 import React from "react";
 import { Stack } from "expo-router";
@@ -37,7 +37,7 @@ export default function RootLayout() {
   }
 
   const bgColor = isDark ? "#000000" : "#ffffff";
-  const fgColor = isDark ? "#e8e8e8" : "#111111";
+  const fgColor = isDark ? "#ffffff" : "#111111";
 
   const headerOptions = {
     headerShown: true,

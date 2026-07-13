@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   const setDetailLevel = useRoadmapStore((s) => s.setDetailLevel);
   const insets = useSafeAreaInsets();
 
-  const fgColor = isDark ? "#f8fafc" : "#0f172a";
+  const fgColor = isDark ? "#ffffff" : "#0f172a";
 
   const renderThemeSegment = () => {
     const options: { label: string; value: "light" | "dark" }[] = [
@@ -148,7 +148,7 @@ export default function SettingsScreen() {
       <View style={{ flex: 1, padding: 20 }}>
         {renderThemeSegment()}
         {renderDetailBlock()}
-        {renderDebugBlock()}
+        {__DEV__ && renderDebugBlock()}
       </View>
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { View, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useColorScheme } from 'nativewind';
@@ -18,7 +18,7 @@ export function MathView({ expression }: MathViewProps) {
   const isDark = colorScheme === 'dark';
 
   const bgColor = isDark ? '#000000' : '#ffffff';
-  const fgColor = isDark ? '#f8fafc' : '#0f172a';
+  const fgColor = isDark ? '#ffffff' : '#0f172a';
   const borderColor = isDark ? 'rgba(248,250,252,0.12)' : 'rgba(15,23,42,0.10)';
 
   // Safely escape the expression for embedding in a JS template literal
@@ -89,7 +89,7 @@ export function MathView({ expression }: MathViewProps) {
       }, 120);
     }
 
-    // KaTeX is loaded with defer — wait for it
+    // KaTeX is loaded with defer â€” wait for it
     if (typeof katex !== 'undefined') {
       render();
     } else {

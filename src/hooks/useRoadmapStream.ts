@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { Alert } from 'react-native';
 import { fetch } from 'expo/fetch';
 import { ENDPOINTS, isJsonResponse } from '../services/apiClient';
 import { useRoadmapStore } from '../store/useRoadmapStore';
@@ -85,19 +86,20 @@ export function useRoadmapStream() {
   const setModuleStatus = useRoadmapStore((s) => s.setModuleStatus);
   const injectModuleContent = useRoadmapStore((s) => s.injectModuleContent);
 
-  // Abort controller ref for cancellation
-  const abortRef = useRef<AbortController | null>(null);
+  // Separate abort controllers to prevent cross-cancellation between phases
+  const structureAbortRef = useRef<AbortController | null>(null);
+  const moduleAbortRef = useRef<AbortController | null>(null);
 
   // ─── Phase 1: Generate roadmap structure ───
   const generateStructure = useCallback(
-    async (prompt: string, bypassDuplicateCheck: boolean = false, isSearch: boolean = false): Promise<Roadmap | { existing: Roadmap } | null> => {
+    async (prompt: string, bypassDuplicateCheck: boolean = false, isSearch: boolean = false): Promise<Roadmap | { existing: Roadmap } | { error: string, type?: 'INVALID_TOPIC' | 'PROFANE' | 'RATE_LIMITED' } | null> => {
       setIsStreaming(true);
       setError(null);
 
-      // Cancel any in-flight request
-      abortRef.current?.abort();
+      // Cancel any in-flight structure request
+      structureAbortRef.current?.abort();
       const controller = new AbortController();
-      abortRef.current = controller;
+      structureAbortRef.current = controller;
 
       const checkDuplicate = (roadmap: Roadmap) => {
         if (bypassDuplicateCheck) return null;
@@ -110,16 +112,26 @@ export function useRoadmapStream() {
         const audience = storeState.audience;
         const detailLevel = storeState.detailLevel;
 
-        const modifiedPrompt = prompt;
-
         const response = await fetch(ENDPOINTS.ROADMAP, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: modifiedPrompt, detailLevel, isSearch, ...(audience && { audience }) }),
+          body: JSON.stringify({ prompt, detailLevel, isSearch, ...(audience && { audience }) }),
           signal: controller.signal,
         });
 
         if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('RATE_LIMITED');
+          }
+          if (response.status === 400) {
+            throw new Error('Please enter a topic to generate a roadmap.');
+          }
+          if (response.status === 422) {
+            const isProfane = response.headers.get('X-Is-Profane') === 'true';
+            const isInvalidTopic = response.headers.get('X-Invalid-Topic') === 'true';
+            if (isProfane) throw new Error('PROFANE');
+            if (isInvalidTopic) throw new Error('INVALID_TOPIC');
+          }
           if (response.status >= 500 && response.status <= 599) {
             throw new Error('Server is currently down or unresponsive. Please try again later.');
           }
@@ -218,15 +230,28 @@ export function useRoadmapStream() {
       } catch (err: any) {
         if (err.name === 'AbortError') return null;
         let message = err.message ?? 'An unknown error occurred';
-        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network request failed')) {
+        let type: 'INVALID_TOPIC' | 'PROFANE' | 'RATE_LIMITED' | undefined;
+
+        if (message === 'INVALID_TOPIC') {
+          type = 'INVALID_TOPIC';
+        } else if (message === 'PROFANE') {
+          type = 'PROFANE';
+        } else if (message === 'RATE_LIMITED') {
+          type = 'RATE_LIMITED';
+          message = 'You\'re generating too many roadmaps. Please wait a minute and try again.';
+        } else if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network request failed')) {
           message = 'Server is not responsive. Please check your connection or try again later.';
         }
         setError(message);
-        console.error('[useRoadmapStream] generateStructure error:', message);
-        return null;
+        
+        if (!type) {
+          console.error('[useRoadmapStream] generateStructure error:', message);
+        }
+        
+        return { error: message, type };
       } finally {
         setIsStreaming(false);
-        abortRef.current = null;
+        structureAbortRef.current = null;
       }
     },
     [addRoadmap]
@@ -244,9 +269,9 @@ export function useRoadmapStream() {
       setError(null);
       setModuleStatus(roadmapId, moduleId, 'loading');
 
-      abortRef.current?.abort();
+      moduleAbortRef.current?.abort();
       const controller = new AbortController();
-      abortRef.current = controller;
+      moduleAbortRef.current = controller;
 
       try {
         const audience = useRoadmapStore.getState().audience;
@@ -265,6 +290,9 @@ export function useRoadmapStream() {
         });
 
         if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Too many requests. Please wait a minute before loading another module.');
+          }
           if (response.status >= 500 && response.status <= 599) {
             throw new Error('Server is currently down or unresponsive. Please try again later.');
           }
@@ -341,19 +369,23 @@ export function useRoadmapStream() {
         if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network request failed')) {
           message = 'Server is not responsive. Please check your connection or try again later.';
         }
+
         setError(message);
         setModuleStatus(roadmapId, moduleId, 'idle'); // Reset on failure
-        console.error('[useRoadmapStream] generateModuleContent error:', message);
+        if (!message.includes('Too many requests')) {
+          console.error('[useRoadmapStream] generateModuleContent error:', message);
+        }
         return null;
       } finally {
-        abortRef.current = null;
+        moduleAbortRef.current = null;
       }
     },
     [setModuleStatus, injectModuleContent]
   );
 
   const cancel = useCallback(() => {
-    abortRef.current?.abort();
+    structureAbortRef.current?.abort();
+    moduleAbortRef.current?.abort();
   }, []);
 
   return { generateStructure, generateModuleContent, isStreaming, error, cancel };

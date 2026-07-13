@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   View,
   Text,
@@ -34,11 +34,11 @@ export function BetaModal({ visible, onClose }: BetaModalProps) {
             
             {/* Header / Icon */}
             <View className="items-center mb-4">
-              <View className="w-16 h-16 rounded-full bg-neoYellow dark:bg-neoYellowDark border-3 border-neoFg dark:border-neoFgDark items-center justify-center mb-3 shadow-[2px_2px_0px_#0f172a] dark:shadow-[2px_2px_0px_#f8fafc]">
-                <Svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#f8fafc" : "#0f172a"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <View className="w-16 h-16 rounded-full bg-neoYellow dark:bg-neoYellowDark border-3 border-neoFg dark:border-neoFgDark items-center justify-center mb-3 shadow-[2px_2px_0px_#0f172a] dark:shadow-[2px_2px_0px_#ffffff]">
+                <Svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#ffffff" : "#0f172a"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <Path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                  <Path d="M12 9v4" stroke={isDark ? "#f8fafc" : "#0f172a"} strokeWidth="3" />
-                  <Path d="M12 17h.01" stroke={isDark ? "#f8fafc" : "#0f172a"} strokeWidth="3" />
+                  <Path d="M12 9v4" stroke={isDark ? "#ffffff" : "#0f172a"} strokeWidth="3" />
+                  <Path d="M12 17h.01" stroke={isDark ? "#ffffff" : "#0f172a"} strokeWidth="3" />
                 </Svg>
               </View>
               

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -17,13 +17,12 @@ import { useRouter, Redirect } from "expo-router";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
 import { useRoadmapStream } from "../../src/hooks/useRoadmapStream";
 import { LoadingOverlay } from "../../src/components/LoadingOverlay";
-import { BetaModal } from "../../src/components/BetaModal";
 import Svg, { Path, Line, Circle, Rect, Polyline, G, Polygon } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Icon Components (Thin-line detailed style)
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MagnetIcon = ({ color, size = 22 }: { color: string; size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -278,9 +277,9 @@ const DiceIcon = ({ color, size = 24 }: { color: string; size?: number }) => (
   </Svg>
 );
 
-// ────────────────────────────────────────────────
-// Topic Data — grouped by category
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Topic Data â€” grouped by category
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type TopicItem = {
   title: string;
@@ -324,7 +323,7 @@ const COMPUTERS: TopicItem[] = [
   { title: "Web Development", subtitle: "Engineering", icon: LaptopIcon },
 ];
 
-// Feeling Lucky pool — all CS/tech topics
+// Feeling Lucky pool â€” all CS/tech topics
 const FEELING_LUCKY_POOL = [
   "Java", "Python", "Data Analytics", "Computer Science Basics",
   "Algorithms & Logic", "Data Science", "Machine Learning",
@@ -361,9 +360,9 @@ const ALL_TOPICS = [
   "Computer Science Basics", "Algorithms & Logic", "Data Science", "Astronomy & Astrophysics"
 ];
 
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tile Component
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TILE_WIDTH = 148;
 const TILE_HEIGHT = 140;
@@ -384,7 +383,7 @@ function CourseTile({
         className="w-[148px] h-[140px] rounded-2xl border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark p-3.5 justify-between -translate-x-1 -translate-y-1 active:translate-x-0 active:translate-y-0"
       >
         <View>
-          <topic.icon color={isDark ? "#e8e8e8" : "#0f172a"} size={24} />
+          <topic.icon color={isDark ? "#ffffff" : "#0f172a"} size={24} />
         </View>
         <View>
           <Text
@@ -402,9 +401,9 @@ function CourseTile({
   );
 }
 
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Feeling Lucky Button
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function FeelingLuckyCircle({
   isDark,
@@ -426,9 +425,9 @@ function FeelingLuckyCircle({
   );
 }
 
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Category Row
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CategoryRow({
   label,
@@ -480,13 +479,12 @@ function CategoryRow({
   );
 }
 
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Main Screen
-// ────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function HomeScreen() {
   const [prompt, setPrompt] = useState("");
-  const [betaModalVisible, setBetaModalVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -495,7 +493,7 @@ export default function HomeScreen() {
   const hasSeenOnboarding = useRoadmapStore((s) => s.hasSeenOnboarding);
   const inputRef = useRef<TextInput>(null);
 
-  // ─── Streaming hook ───
+  // â”€â”€â”€ Streaming hook â”€â”€â”€
   const { generateStructure, isStreaming, error: streamError } = useRoadmapStream();
   const isLoading = isStreaming;
 
@@ -554,6 +552,28 @@ export default function HomeScreen() {
     try {
       const result = await generateStructure(trimmed, bypassCheck, isSearch);
       
+      if (result && 'error' in result) {
+        if (result.type === 'INVALID_TOPIC') {
+          Alert.alert(
+            "Out of Scope",
+            "Hmm, google might be better for that one! Try something more educational like 'Machine Learning' or 'Organic Chemistry'."
+          );
+        } else if (result.type === 'PROFANE') {
+          Alert.alert(
+            "Whoa there!",
+            "Let's keep it clean! We're here to learn."
+          );
+        } else if (result.type === 'RATE_LIMITED') {
+          Alert.alert(
+            "Slow Down!",
+            "You're generating too many roadmaps. Please wait a minute and try again."
+          );
+        } else {
+          Alert.alert("Generation Failed", result.error);
+        }
+        return;
+      }
+
       if (result && 'existing' in result) {
         setPrompt("");
         Alert.alert(
@@ -580,10 +600,9 @@ export default function HomeScreen() {
         return;
       }
 
-      const roadmap = result;
-      if (roadmap && !('existing' in roadmap)) {
+      if (result) {
         setPrompt("");
-        router.push(`/roadmap/${roadmap.id}`);
+        router.push(`/roadmap/${result.id}`);
       } else if (streamError) {
         Alert.alert("Generation Failed", streamError);
       }
@@ -613,7 +632,7 @@ export default function HomeScreen() {
         backgroundColor: isDark ? "#000000" : "#ffffff",
       }}
     >
-      {/* ─── Header Bar ─── */}
+      {/* â”€â”€â”€ Header Bar â”€â”€â”€ */}
       <View
         style={{
           flexDirection: "row",
@@ -648,7 +667,7 @@ export default function HomeScreen() {
           style={{
             fontFamily: "SpaceGrotesk_700Bold",
             fontSize: 20,
-            color: isDark ? "#e8e8e8" : "#0f172a",
+            color: isDark ? "#ffffff" : "#0f172a",
             letterSpacing: -0.5,
           }}
         >
@@ -658,37 +677,30 @@ export default function HomeScreen() {
 
       <ScrollView
         contentContainerStyle={{
-          paddingTop: 8,
-          paddingBottom: 40,
+          paddingTop: 18,
+          paddingBottom: 0,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
 
 
-        {/* ─── Search Tile ─── */}
+        {/* â”€â”€â”€ Search Tile â”€â”€â”€ */}
         <View style={{ paddingHorizontal: 20, marginBottom: 32 }}>
           <View
             style={{
               borderRadius: 18,
-              backgroundColor: isDark ? "#e8e8e8" : "#0f172a",
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#0f172a",
+              backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
+              padding: 16,
             }}
           >
-            <View
-              style={{
-                borderRadius: 18,
-                borderWidth: 3,
-                borderColor: isDark ? "#e8e8e8" : "#0f172a",
-                backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
-                padding: 16,
-                transform: [{ translateX: -4 }, { translateY: -4 }],
-              }}
-            >
               <Text
                 style={{
                   fontFamily: "SpaceGrotesk_700Bold",
                   fontSize: 22,
-                  color: isDark ? "#e8e8e8" : "#0f172a",
+                  color: isDark ? "#ffffff" : "#0f172a",
                   marginBottom: 4,
                 }}
               >
@@ -756,7 +768,7 @@ export default function HomeScreen() {
                     marginLeft: 10,
                     fontSize: 15,
                     fontFamily: "SpaceGrotesk_500Medium",
-                    color: isDark ? "#e8e8e8" : "#0f172a",
+                    color: isDark ? "#ffffff" : "#0f172a",
                   }}
                 />
 
@@ -769,7 +781,7 @@ export default function HomeScreen() {
                       width: 36,
                       height: 36,
                       borderRadius: 18,
-                      backgroundColor: isDark ? "#e8e8e8" : "#0f172a",
+                      backgroundColor: isDark ? "#ffffff" : "#0f172a",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
@@ -816,7 +828,7 @@ export default function HomeScreen() {
                           marginLeft: 10,
                           fontFamily: "SpaceGrotesk_500Medium",
                           fontSize: 15,
-                          color: isDark ? "#e8e8e8" : "#0f172a",
+                          color: isDark ? "#ffffff" : "#0f172a",
                         }}
                       >
                         {s}
@@ -826,10 +838,9 @@ export default function HomeScreen() {
                 </View>
               )}
             </View>
-          </View>
         </View>
 
-        {/* ─── Sciences Row ─── */}
+        {/* â”€â”€â”€ Sciences Row â”€â”€â”€ */}
         <CategoryRow
           label="Sciences"
           topics={SCIENCES}
@@ -837,7 +848,7 @@ export default function HomeScreen() {
           onTopicPress={handleSubmitTopic}
         />
 
-        {/* ─── Liberal Arts Row ─── */}
+        {/* â”€â”€â”€ Liberal Arts Row â”€â”€â”€ */}
         <CategoryRow
           label="Liberal Arts"
           topics={LIBERAL_ARTS}
@@ -845,7 +856,7 @@ export default function HomeScreen() {
           onTopicPress={handleSubmitTopic}
         />
 
-        {/* ─── Computers Row ─── */}
+        {/* â”€â”€â”€ Computers Row â”€â”€â”€ */}
         <CategoryRow
           label="Computers"
           topics={COMPUTERS}
@@ -858,10 +869,6 @@ export default function HomeScreen() {
       </ScrollView>
 
       {isLoading && <LoadingOverlay />}
-      <BetaModal
-        visible={betaModalVisible}
-        onClose={() => setBetaModalVisible(false)}
-      />
     </View>
   );
 }

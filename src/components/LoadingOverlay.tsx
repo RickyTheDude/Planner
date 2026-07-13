@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text } from "react-native";
 import { useColorScheme } from "nativewind";
 import { LogoLoader } from "./LogoLoader";

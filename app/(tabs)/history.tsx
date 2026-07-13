@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
