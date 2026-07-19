@@ -62,7 +62,7 @@ function toRoadmapNode(raw: any, index: number): RoadmapNode {
 /**
  * Transform raw API response into a client-side Roadmap.
  */
-function toRoadmap(raw: any): Roadmap {
+function toRoadmap(raw: any, detailLevel?: 'quick' | 'standard' | 'comprehensive'): Roadmap {
   const data = raw.data ?? raw;
   return {
     id: data.id ?? `roadmap-${Date.now()}`,
@@ -70,6 +70,7 @@ function toRoadmap(raw: any): Roadmap {
     totalModules: data.totalModules ?? data.nodes?.length ?? 0,
     estimatedHours: data.estimatedHours ?? 0,
     createdAt: data.createdAt ?? Date.now(),
+    detailLevel: data.detailLevel ?? detailLevel ?? 'standard',
     nodes: Array.isArray(data.nodes)
       ? data.nodes.map((n: any, i: number) => toRoadmapNode(n, i))
       : [],
@@ -145,7 +146,7 @@ export function useRoadmapStream() {
         if (isJsonResponse(contentType)) {
           // ─── Cache Hit: immediate JSON parse ───
           const payload = (await response.json()) as RoadmapApiResponse;
-          const roadmap = toRoadmap(payload);
+          const roadmap = toRoadmap(payload, detailLevel);
           
           const existing = checkDuplicate(roadmap);
           if (existing) {
@@ -162,7 +163,7 @@ export function useRoadmapStream() {
           const text = await response.text();
           const parsed = tryParseJSON<RoadmapApiResponse>(text);
           if (!parsed) throw new Error('Failed to parse streamed roadmap response');
-          const roadmap = toRoadmap(parsed);
+          const roadmap = toRoadmap(parsed, detailLevel);
           
           const existing = checkDuplicate(roadmap);
           if (existing) {
@@ -190,10 +191,10 @@ export function useRoadmapStream() {
           let currentParsedRoadmap: Roadmap | null = null;
           
           if (parsed) {
-            currentParsedRoadmap = toRoadmap(parsed);
+            currentParsedRoadmap = toRoadmap(parsed, detailLevel);
           } else {
             // Attempt partial parse: extract nodes that exist so far
-            const partialRoadmap = attemptPartialParse(accumulated);
+            const partialRoadmap = attemptPartialParse(accumulated, detailLevel);
             if (partialRoadmap && partialRoadmap.nodes.length > (lastGoodRoadmap?.nodes.length ?? 0)) {
               currentParsedRoadmap = partialRoadmap;
             }
@@ -218,7 +219,7 @@ export function useRoadmapStream() {
         accumulated += decoder.decode();
         const finalParsed = tryParseJSON<RoadmapApiResponse>(accumulated);
         if (finalParsed) {
-          lastGoodRoadmap = toRoadmap(finalParsed);
+          lastGoodRoadmap = toRoadmap(finalParsed, detailLevel);
           addRoadmap(lastGoodRoadmap);
         }
 
@@ -394,7 +395,7 @@ export function useRoadmapStream() {
 // ─── Partial JSON Parsers ───
 // These attempt to extract usable data from incomplete streaming JSON.
 
-function attemptPartialParse(text: string): Roadmap | null {
+function attemptPartialParse(text: string, detailLevel?: 'quick' | 'standard' | 'comprehensive'): Roadmap | null {
   try {
     // Try to find and extract nodes array even from partial JSON
     // The AI SDK streams like: {"id":"...","topic":"...","nodes":[{...},{...
@@ -424,7 +425,7 @@ function attemptPartialParse(text: string): Roadmap | null {
 
     const parsed = JSON.parse(repaired);
     if (parsed && (parsed.data?.nodes || parsed.nodes)) {
-      return toRoadmap(parsed);
+      return toRoadmap(parsed, detailLevel);
     }
   } catch {
     // Partial parse failed — that's expected during streaming

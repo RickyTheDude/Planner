@@ -1,4 +1,4 @@
-﻿// @ts-ignore
+// @ts-ignore
 import "../global.css";
 import React from "react";
 import { Stack } from "expo-router";
@@ -14,6 +14,11 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
+
+import * as SplashScreen from 'expo-splash-screen';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -31,6 +36,12 @@ export default function RootLayout() {
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
   });
+
+  React.useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return null;

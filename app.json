@@ -16,7 +16,10 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.anonymous.cognimosityplan"
+      "package": "com.anonymous.cognimosityplan",
+      "gradleProperties": {
+        "sdk.dir": "C:/Users/kanik/AppData/Local/Android/Sdk"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -32,7 +35,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "expo-system-ui"
     ]
   }
 }

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useRoadmapStore } from "../../src/store/useRoadmapStore";
@@ -77,10 +77,10 @@ export default function SettingsScreen() {
   };
 
   const renderDetailBlock = () => {
-    const options: { label: string; value: "quick" | "standard" | "comprehensive"; caption: string }[] = [
-      { label: "Quick", value: "quick", caption: "~5 modules for a fast summary" },
-      { label: "Standard", value: "standard", caption: "~10 modules (Default)" },
-      { label: "Comprehensive", value: "comprehensive", caption: "Up to 20 modules for a deep-dive" }
+    const options: { label: string; value: "quick" | "standard" | "comprehensive"; caption: string; color: string; colorDark: string }[] = [
+      { label: "Quick", value: "quick", caption: "~5 modules for a fast summary", color: "bg-neoPink", colorDark: "dark:bg-neoPinkDark" },
+      { label: "Standard", value: "standard", caption: "~10 modules (Default)", color: "bg-neoYellow", colorDark: "dark:bg-neoYellowDark" },
+      { label: "Comprehensive", value: "comprehensive", caption: "Up to 20 modules for a deep-dive", color: "bg-neoCyan", colorDark: "dark:bg-neoCyanDark" }
     ];
 
     return (
@@ -89,14 +89,16 @@ export default function SettingsScreen() {
           Roadmap Detail Level
         </Text>
         <View className="flex-1 rounded-xl bg-neoFg dark:bg-neoFgDark">
-          <View className="flex-1 rounded-xl border-3 border-neoFg dark:border-neoFgDark bg-neoBg dark:bg-neoBgDark p-6 -translate-x-1 -translate-y-1 justify-center">
+          <View className="flex-1 rounded-xl border-3 border-neoFg dark:border-neoFgDark bg-neoBg dark:bg-neoBgDark p-4 -translate-x-1 -translate-y-1 justify-center">
             {options.map((opt, idx) => {
               const isSelected = detailLevel === opt.value;
               return (
                 <Pressable
                   key={opt.value}
                   onPress={() => setDetailLevel(opt.value)}
-                  className={`py-6 ${idx < options.length - 1 ? 'mb-6' : ''}`}
+                  className={`p-4 rounded-xl border-2 ${idx < options.length - 1 ? 'mb-4' : ''} ${
+                    isSelected ? `${opt.color} ${opt.colorDark} border-neoFg dark:border-neoFgDark` : 'border-transparent'
+                  }`}
                 >
                   <Text className={`text-4xl font-space-bold uppercase tracking-tighter ${
                     isSelected ? 'text-neoFg dark:text-neoFgDark' : 'text-neoFg/30 dark:text-neoFgDark/30'
@@ -104,7 +106,7 @@ export default function SettingsScreen() {
                     {opt.label}
                   </Text>
                   {isSelected && (
-                    <Text className="text-sm font-mono text-neoFg/70 dark:text-neoFgDark/70 mt-2">
+                    <Text className="text-sm font-mono text-neoFg/80 dark:text-neoFgDark/80 mt-2">
                       {opt.caption}
                     </Text>
                   )}

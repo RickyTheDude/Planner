@@ -27,7 +27,7 @@ import { useRoadmapStore } from "../../../src/store/useRoadmapStore";
 import { useRoadmapStream } from "../../../src/hooks/useRoadmapStream";
 import { SourcesModal } from "../../../src/components/SourcesModal";
 import { MermaidBlock } from "../../../src/components/MermaidBlock";
-import { GraphBlock } from "../../../src/components/GraphBlock";
+import { YouTubeBlock } from "../../../src/components/YouTubeBlock";
 import { ModuleLoadingSkeleton } from "../../../src/components/ModuleLoadingSkeleton";
 import { StandingWaveLoader } from "../../../src/components/StandingWaveLoader";
 import { resolveImageUrl } from "../../../src/services/imageService";
@@ -310,7 +310,7 @@ export default function MaterialScreen() {
     const prereqs = node.prerequisites?.length
       ? `Prerequisites: ${node.prerequisites.join(', ')}`
       : 'No prerequisites';
-    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, use proper LaTeX formatting: use $$...$$ for display equations and $...$ for inline math. ALSO IMPORTANT: For Mermaid diagrams, NEVER use colons, parentheses, or special characters inside node labels. Keep node labels as simple alphanumeric text (e.g., use A[Curve f of x] instead of A[Curve: f(x)]) to prevent syntax errors. CRITICAL: To display 2D graphs or functions, use a markdown code block with the language identifier "graph" and write each mathematical expression on a new line (e.g., y = x^2 or sin(x)). For topics related to chemistry, biology, math, or physics, strongly prioritize including graph explanations wherever relevant to improve reader clarity. CRITICAL: For both mermaid and graph blocks, always provide a descriptive title using the syntax \`\`\`graph title="Your Descriptive Title"\`\`\`. CRITICAL: When writing code snippets, ALWAYS wrap them in markdown code blocks with the correct language identifier (e.g., \`\`\`python, \`\`\`java) for syntax highlighting.`;
+    const context = `This is module ${node.index + 1} (index ${node.index}) of the "${roadmap?.topic}" roadmap. ${prereqs}. IMPORTANT: When writing math equations, use proper LaTeX formatting: use $$...$$ for display equations and $...$ for inline math. ALSO IMPORTANT: For Mermaid diagrams, NEVER use colons, parentheses, or special characters inside node labels. Keep node labels as simple alphanumeric text (e.g., use A[Curve f of x] instead of A[Curve: f(x)]) to prevent syntax errors. When a visual explanation or deeper dive is helpful (especially for math, physics, or complex topics), provide a highly relevant YouTube Search Query (e.g., "CrashCourse Quantum Mechanics"). Format it using a markdown code block with the language identifier "youtube", containing ONLY the search query inside (do not include URLs or video IDs). CRITICAL: When writing code snippets, ALWAYS wrap them in markdown code blocks with the correct language identifier (e.g., \`\`\`python, \`\`\`java) for syntax highlighting.`;
 
     generateModuleContent(
       roadmapId,
@@ -666,12 +666,11 @@ export default function MaterialScreen() {
           />
         );
       }
-      if (lang === 'graph' || lang === 'plot') {
+      if (lang === 'youtube') {
         return (
-          <GraphBlock
+          <YouTubeBlock
             key={node.key}
             code={node.content ?? ''}
-            title={title}
           />
         );
       }

@@ -44,6 +44,7 @@ export type Roadmap = {
   estimatedHours: number;
   createdAt: number;
   nodes: RoadmapNode[];
+  detailLevel?: 'quick' | 'standard' | 'comprehensive';
 };
 
 // ─── Store Interface ───

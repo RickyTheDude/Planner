@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { View, Text, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { useColorScheme } from "nativewind";
 import { useRouter } from "expo-router";
@@ -222,12 +222,21 @@ function SortableCard({
     };
   });
 
+  const getCardColors = (detailLevel?: string) => {
+    switch (detailLevel) {
+      case 'quick': return 'bg-neoPink dark:bg-neoPinkDark';
+      case 'comprehensive': return 'bg-neoCyan dark:bg-neoCyanDark';
+      case 'standard':
+      default: return 'bg-neoYellow dark:bg-neoYellowDark';
+    }
+  };
+
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={animatedStyle} className="rounded-2xl bg-neoFg dark:bg-neoFgDark mx-5 mb-5 relative">
         <Pressable
           onPress={onPress}
-          className="rounded-2xl border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark px-5 py-4 -translate-x-1.5 -translate-y-1.5 active:translate-x-0 active:translate-y-0 h-full justify-between"
+          className={`rounded-2xl border-3 border-neoFg dark:border-neoFgDark ${getCardColors(roadmap.detailLevel)} px-5 py-4 -translate-x-1.5 -translate-y-1.5 active:translate-x-0 active:translate-y-0 h-full justify-between`}
         >
           <View className="flex-row justify-between items-start mb-1">
             <Text
@@ -274,23 +283,29 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'quick' | 'standard' | 'comprehensive'>('all');
   const draggedAbsoluteX = useSharedValue(0);
   const draggedAbsoluteY = useSharedValue(0);
   const isOverTrash = useSharedValue(false);
   const trashRef = useAnimatedRef<any>();
 
+  const filteredRoadmaps = useMemo(() => {
+    if (filter === 'all') return roadmaps;
+    return roadmaps.filter(r => (r.detailLevel || 'standard') === filter);
+  }, [roadmaps, filter]);
+
   const positions = useSharedValue<Record<string, number>>(
-    roadmaps.length > 0
-      ? Object.assign({}, ...roadmaps.map((r, i) => ({ [r.id]: i })))
+    filteredRoadmaps.length > 0
+      ? Object.assign({}, ...filteredRoadmaps.map((r, i) => ({ [r.id]: i })))
       : {}
   );
 
   useEffect(() => {
     positions.value =
-      roadmaps.length > 0
-        ? Object.assign({}, ...roadmaps.map((r, i) => ({ [r.id]: i })))
+      filteredRoadmaps.length > 0
+        ? Object.assign({}, ...filteredRoadmaps.map((r, i) => ({ [r.id]: i })))
         : {};
-  }, [roadmaps]);
+  }, [filteredRoadmaps]);
 
   const handleDragStart = useCallback((id: string) => {
     setActiveDragId(id);
@@ -302,12 +317,26 @@ export default function HistoryScreen() {
       if (isDelete) {
         hapticDelete();
         deleteRoadmap(id);
-      } else if (newPositions) {
+      } else if (newPositions && filter === 'all') {
         const sorted = [...roadmaps].sort((a, b) => newPositions[a.id] - newPositions[b.id]);
         setRoadmaps(sorted);
+      } else if (newPositions && filter !== 'all') {
+        // Find indices in the original array
+        const sortedFiltered = [...filteredRoadmaps].sort((a, b) => newPositions[a.id] - newPositions[b.id]);
+        const newRoadmaps = [...roadmaps];
+        
+        // Re-insert sorted filtered roadmaps into their original spots
+        let sortedIndex = 0;
+        for (let i = 0; i < newRoadmaps.length; i++) {
+          if ((newRoadmaps[i].detailLevel || 'standard') === filter) {
+            newRoadmaps[i] = sortedFiltered[sortedIndex];
+            sortedIndex++;
+          }
+        }
+        setRoadmaps(newRoadmaps);
       }
     },
-    [roadmaps]
+    [roadmaps, filteredRoadmaps, filter]
   );
 
   const animatedTrashStyle = useAnimatedStyle(() => {
@@ -326,24 +355,48 @@ export default function HistoryScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top }} className="bg-neoBg dark:bg-neoBgDark">
-      <View className="pt-3 px-5 pb-5 flex-row items-center">
+      <View className="pt-3 px-5 pb-3 flex-row items-center">
         <Text className="text-xl font-space-bold tracking-tight text-neoFg dark:text-neoFgDark">
           Learning Paths
         </Text>
+      </View>
+
+      <View className="px-5 mb-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+          {[
+            { id: 'all', label: 'All', color: 'bg-neoMain dark:bg-neoMainDark' },
+            { id: 'quick', label: 'Quick', color: 'bg-neoPink dark:bg-neoPinkDark' },
+            { id: 'standard', label: 'Standard', color: 'bg-neoYellow dark:bg-neoYellowDark' },
+            { id: 'comprehensive', label: 'Comprehensive', color: 'bg-neoCyan dark:bg-neoCyanDark' }
+          ].map((f) => {
+            const isSelected = filter === f.id;
+            return (
+              <Pressable
+                key={f.id}
+                onPress={() => setFilter(f.id as any)}
+                className={`mr-3 rounded-full border-2 border-neoFg dark:border-neoFgDark px-4 py-1.5 ${f.color} ${isSelected ? 'opacity-100' : 'opacity-40'}`}
+              >
+                <Text className={`font-space-bold text-sm text-neoFg dark:text-neoFgDark`}>
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <ScrollView
         className="flex-1"
         scrollEnabled={activeDragId === null}
         contentContainerStyle={{
-          height: roadmaps.length > 0 ? roadmaps.length * ITEM_HEIGHT + 40 : undefined,
+          height: filteredRoadmaps.length > 0 ? filteredRoadmaps.length * ITEM_HEIGHT + 40 : undefined,
           flexGrow: 1,
-          paddingTop: 24,
+          paddingTop: 8,
           paddingBottom: 40,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {roadmaps.length === 0 && (
+        {filteredRoadmaps.length === 0 && (
           <View className="mt-16 mx-6 items-center">
             <View className="w-24 h-24 mb-6 rounded-3xl bg-neoFg dark:bg-neoFgDark">
               <View className="w-24 h-24 rounded-3xl border-3 border-neoFg dark:border-neoFgDark bg-neoMain dark:bg-neoMainDark items-center justify-center -translate-x-1 -translate-y-1">
@@ -375,7 +428,7 @@ export default function HistoryScreen() {
         )}
 
         <View style={{ position: "relative", flex: 1 }}>
-          {roadmaps.map((roadmap, index) => {
+          {filteredRoadmaps.map((roadmap, index) => {
             if (!roadmap || !roadmap.id) return null;
             return (
               <SortableCard
