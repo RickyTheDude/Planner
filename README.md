@@ -6,6 +6,8 @@
 [![Zustand](https://img.shields.io/badge/State-Zustand-orange?style=for-the-badge)](https://github.com/pmndrs/zustand)
 [![MMKV](https://img.shields.io/badge/Storage-MMKV_Fast-green?style=for-the-badge)](https://github.com/mrousavy/react-native-mmkv)
 
+[![Watch the Video](https://img.youtube.com/vi/B8GD4rjf-AA/maxresdefault.jpg)](https://www.youtube.com/watch?v=B8GD4rjf-AA)
+
 An advanced, AI-powered educational roadmap and curriculum planning application built with **React Native** and **Expo (SDK 57)**. Engineered around a striking, tactile **neobrutalist design system**, PLAN & LEARN delivers real-time learning path generation, interactive visualizations, and adaptive curriculum tuning.
 
 ---
