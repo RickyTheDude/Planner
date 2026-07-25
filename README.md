@@ -1,4 +1,4 @@
-# 🗺️ PLAN & LEARN (Cognimosity-Plan)
+# 🗺️ PLAN & LEARN
 
 [![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-00020d?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
 [![React Native](https://img.shields.io/badge/React_Native-v0.86-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
